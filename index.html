@@ -1,91 +1,3 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>catch cat</title>
-<style>
-  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; }
-  }
-  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0 !important; }
-  html, body { height:100%; margin:0; }
-  body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
-    display:flex; flex-direction:column; align-items:center; padding:16px; user-select:none; }
-  h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
-  .bar { display:flex; gap:12px; margin-bottom:10px; font-weight:700; }
-  .bar div { background:var(--card); padding:6px 14px; }
-  #field { position:relative; width:100%; max-width:560px; flex:1; max-height:520px; min-height:300px;
-    background:var(--card); touch-action:manipulation; }
-  #cat { position:absolute; width:80px; height:80px; cursor:pointer; display:none; z-index:5;
-    transition:left .12s, top .12s, opacity .12s; filter:grayscale(1); }
-  #cat.color { filter:none; }
-  #face { width:100%; height:100%; }
-  #face img { width:100%; height:100%; object-fit:fill; display:block; pointer-events:none; }
-  #face .emoji { font-size:3.2rem; line-height:1; display:flex; align-items:center; justify-content:center;
-    width:100%; height:100%; }
-  #cat.hit { opacity:.3; }
-  #cat.angry #face { animation:shake .12s linear infinite; }
-  @keyframes shake { 0%,100% { transform:translateX(-6px); } 50% { transform:translateX(6px); } }
-  #bubble { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:6px;
-    display:none; white-space:nowrap; background:var(--bg); color:var(--fg); border:2px solid var(--fg);
-    padding:4px 10px; font-size:.85rem; font-weight:700; pointer-events:none; }
-  #cat.angry #bubble { display:block; }
-  #overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap:12px; text-align:center; padding:16px; z-index:10;
-    background:color-mix(in srgb, var(--card) 88%, transparent); }
-  #overlay p { margin:0; font-size:1.1rem; line-height:1.6; }
-  button { background:var(--btn); color:var(--btn-fg); border:0; padding:12px 28px;
-    font-size:1.1rem; font-weight:700; cursor:pointer; }
-  button:active { transform:scale(.96); }
-
-  /* 퀘스트 두루마리 */
-  #quest { position:fixed; top:8px; left:8px; z-index:20; width:230px; }
-  #questIcon { width:44px; height:44px; cursor:pointer; display:block; }
-  #questIcon img { width:100%; height:100%; object-fit:contain; display:block;
-    image-rendering:pixelated; pointer-events:none; }
-  #questIcon .emoji { font-size:2rem; line-height:44px; text-align:center; display:block; }
-  #questText { display:none; margin-top:6px; padding:8px 10px; background:var(--card);
-    font-size:.9rem; line-height:1.6; font-weight:700; }
-
-  /* 코드창 */
-  #code { position:fixed; right:8px; bottom:8px; z-index:20; display:flex; gap:8px; padding:8px;
-    background:#666; border:2px solid #8a4fff; }
-  #code .label { background:#fff; color:#000; font-weight:700; font-size:1rem; padding:8px 12px;
-    display:flex; align-items:center; }
-  #codeInput { width:150px; background:#fff; color:#000; border:0; padding:8px 10px;
-    font-size:16px; outline:none; user-select:text; -webkit-user-select:text; }
-</style>
-</head>
-<body>
-  <div id="quest">
-    <div id="questIcon"></div>
-    <div id="questText">
-      고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 1%)<br>
-      고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 2%)
-    </div>
-  </div>
-
-  <h1>catch cat</h1>
-  <div class="bar">
-    <div>time <span id="time">45</span></div>
-    <div>score <span id="score">0</span></div>
-    <div>best <span id="best">0</span></div>
-  </div>
-  <div id="field">
-    <div id="cat"><div id="face"></div><div id="bubble"></div></div>
-    <div id="overlay">
-      <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
-      <button id="start">시작</button>
-    </div>
-  </div>
-
-  <div id="code">
-    <div class="label">code</div>
-    <input id="codeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
-  </div>
-
 <script>
   // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
   const CAT_IMG = '16.jpg';
@@ -99,6 +11,15 @@
   const REFUSE_CHANCE = 0.02;  // 점수 거절 확률 2%
   const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
   const ANGRY_COLOR = true;   // true로 바꾸면 화난 사진만 컬러로 표시
+  
+  const FAKE_START_SCORE = 10; // 몇 점부터 분신술이 등장할지
+  const FAKE_LINES = [
+    '가짜였습니다~ ㅋ',
+    '거긴 내가 아닙니다.',
+    '속았군요, 집사여!',
+    '눈이 어두우시네요.'
+  ];
+
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
     '짜증납니다. 거절합니다.',
@@ -123,6 +44,14 @@
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
 
+  // 퀘스트 텍스트에 분신 속은 횟수 항목 동적 추가
+  questText.innerHTML = `
+    고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 1%)<br>
+    고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 2%)<br>
+    가짜 고양이에 속은 횟수: <span id="fakeCount">0</span>번
+  `;
+  const fakeCountEl = document.getElementById('fakeCount');
+
   // 고양이 사진 넣기 (실패하면 이모지)
   const img = new Image();
   img.src = CAT_IMG;
@@ -131,7 +60,7 @@
   img.onerror = () => { face.innerHTML = '<span class="emoji">🐱</span>'; };
   face.appendChild(img);
 
-  // 화난 고양이 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  // 화난 고양이 사진 미리 불러오기
   let angryOk = true;
   const angryImg = new Image();
   angryImg.src = ANGRY_IMG;
@@ -143,7 +72,7 @@
     cat.classList.toggle('color', on && ANGRY_COLOR);
   }
 
-  // 퀘스트 두루마리 사진 넣기 (실패하면 이모지)
+  // 퀘스트 두루마리 사진 넣기
   const qimg = new Image();
   qimg.src = QUEST_IMG;
   qimg.alt = '퀘스트';
@@ -151,15 +80,16 @@
   qimg.onerror = () => { questIcon.innerHTML = '<span class="emoji">📜</span>'; };
   questIcon.appendChild(qimg);
 
-  // 클릭하면 아래 글씨 열고 닫기
   questIcon.addEventListener('click', () => {
     questText.style.display = (questText.style.display === 'block') ? 'none' : 'block';
   });
 
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
-  let escaped = false, escCount = 0, refCount = 0, refusing = false;
+  let escaped = false, escCount = 0, refCount = 0, fakeCount = 0, refusing = false;
   let unlimited = false;
   let best = 0;
+  let fakeCats = []; // 가짜 고양이 요소들을 담을 배열
+
   try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
   bestEl.textContent = best;
 
@@ -167,7 +97,6 @@
     timeEl.textContent = unlimited ? '∞' : time;
   }
 
-  // 코드창: Enter로 입력
   codeInput.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     const v = codeInput.value.trim().toLowerCase();
@@ -187,57 +116,148 @@
     return MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE);
   }
 
-  // 잡을 때마다 가로/세로를 따로 랜덤 변경
   function reshapeCat() {
     cat.style.width = randSize() + 'px';
     cat.style.height = randSize() + 'px';
   }
 
-  // 박스 안 위치
-  function placeInside() {
-    const maxX = Math.max(0, field.clientWidth - cat.offsetWidth);
-    const maxY = Math.max(0, field.clientHeight - cat.offsetHeight);
-    cat.style.left = Math.random() * maxX + 'px';
-    cat.style.top = Math.random() * maxY + 'px';
+  function placeInside(el) {
+    const maxX = Math.max(0, field.clientWidth - el.offsetWidth);
+    const maxY = Math.max(0, field.clientHeight - el.offsetHeight);
+    el.style.left = Math.random() * maxX + 'px';
+    el.style.top = Math.random() * maxY + 'px';
   }
 
   function hits(x, y, w, h, r) {
     return x < r.right && x + w > r.left && y < r.bottom && y + h > r.top;
   }
 
-  // 박스 밖 위치 (화면 안에서, 박스/두루마리/코드창을 피함)
-  function placeOutside() {
+  function placeOutside(el) {
     const r = field.getBoundingClientRect();
     const q = quest.getBoundingClientRect();
     const c = codeBox.getBoundingClientRect();
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
-    const w = cat.offsetWidth, h = cat.offsetHeight;
+    const w = el.offsetWidth, h = el.offsetHeight;
     for (let i = 0; i < 80; i++) {
       const x = Math.random() * Math.max(0, vw - w);
       const y = Math.random() * Math.max(0, vh - h);
       if (!hits(x, y, w, h, r) && !hits(x, y, w, h, q) && !hits(x, y, w, h, c)) {
-        cat.style.left = (x - r.left) + 'px';
-        cat.style.top = (y - r.top) + 'px';
+        el.style.left = (x - r.left) + 'px';
+        el.style.top = (y - r.top) + 'px';
         return;
       }
     }
-    cat.style.left = (vw - w - r.left) + 'px';
-    cat.style.top = (-r.top) + 'px';
+    el.style.left = (vw - w - r.left) + 'px';
+    el.style.top = (-r.top) + 'px';
   }
+
+  // --- 분신(가짜 고양이) 관리 함수 ---
+  function createFakeCatElement() {
+    const fCat = document.createElement('div');
+    fCat.className = 'fake-cat';
+    fCat.style.position = 'absolute';
+    fCat.style.width = '80px';
+    fCat.style.height = '80px';
+    fCat.style.cursor = 'pointer';
+    fCat.style.zIndex = '4';
+    fCat.style.transition = 'left .12s, top .12s, opacity .12s';
+    
+    const fFace = document.createElement('div');
+    fFace.style.width = '100%';
+    fFace.style.height = '100%';
+    const fImg = new Image();
+    fImg.src = CAT_IMG;
+    fImg.alt = '가짜고양이';
+    fImg.draggable = false;
+    fImg.onerror = () => { fFace.innerHTML = '<span class="emoji" style="font-size:3.2rem;line-height:1;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">🐱</span>'; };
+    fFace.appendChild(fImg);
+
+    const fBubble = document.createElement('div');
+    fBubble.style.position = 'absolute';
+    fBubble.style.bottom = '100%';
+    fBubble.style.left = '50%';
+    fBubble.style.transform = 'translateX(-50%)';
+    fBubble.style.marginBottom = '6px';
+    fBubble.style.display = 'none';
+    fBubble.style.whiteSpace = 'nowrap';
+    fBubble.style.background = 'var(--bg)';
+    fBubble.style.color = 'var(--fg)';
+    fBubble.style.border = '2px solid var(--fg)';
+    fBubble.style.padding = '4px 10px';
+    fBubble.style.fontSize = '.85rem';
+    fBubble.style.fontWeight = '700';
+    fBubble.style.pointerEvents = 'none';
+
+    fCat.appendChild(fFace);
+    fCat.appendChild(fBubble);
+
+    let fakeRefusing = false;
+
+    fCat.addEventListener('pointerdown', (e) => {
+      if (!playing || fakeRefusing) return;
+      e.preventDefault();
+      fakeRefusing = true;
+      fakeCount++;
+      fakeCountEl.textContent = fakeCount;
+
+      fBubble.textContent = FAKE_LINES[Math.floor(Math.random() * FAKE_LINES.length)];
+      fBubble.style.display = 'block';
+      fCat.style.opacity = '.3';
+
+      setTimeout(() => {
+        fBubble.style.display = 'none';
+        fCat.style.opacity = '1';
+        fakeRefusing = false;
+      }, 1500);
+    });
+
+    field.appendChild(fCat);
+    return fCat;
+  }
+
+  function updateFakeCats() {
+    // 기존 가짜 고양이 제거
+    fakeCats.forEach(fc => fc.remove());
+    fakeCats = [];
+
+    // 점수가 10점 이상이고 35% 확률로 분신 1~2마리 소환
+    if (score >= FAKE_START_SCORE && Math.random() < 0.35) {
+      const count = score >= 25 ? 2 : 1; // 점수 높으면 2마리까지!
+      for (let i = 0; i < count; i++) {
+        const fc = createFakeCatElement();
+        fc.style.width = randSize() + 'px';
+        fc.style.height = randSize() + 'px';
+        if (escaped) {
+          placeOutside(fc);
+        } else {
+          placeInside(fc);
+        }
+        fc.style.display = 'block';
+        fakeCats.push(fc);
+      }
+    }
+  }
+  // ---------------------------------
 
   function moveCat() {
     if (!playing) return;
     refusing = false;
     cat.classList.remove('hit', 'angry');
     showAngryFace(false);
+
     if (!escaped && Math.random() < ESCAPE_CHANCE) {
       escaped = true;
       escCount++;
       escCountEl.textContent = escCount;
     }
-    if (escaped) placeOutside(); else placeInside();
+
+    if (escaped) placeOutside(cat); else placeInside(cat);
     cat.style.display = 'block';
+
+    // 진짜 고양이가 이동할 때 분신들도 같이 갱신/이동
+    updateFakeCats();
+
     const delay = Math.max(350, 900 - score * 25) * SLOW;
     moveTimer = setTimeout(moveCat, delay);
   }
@@ -245,10 +265,9 @@
   function catchCat(e) {
     if (!playing) return;
     e.preventDefault();
-    if (refusing) return; // 거절 중에는 입력 무시
+    if (refusing) return; 
     clearTimeout(moveTimer);
 
-    // 2% 확률로 짜증내며 점수 거절 (4초)
     if (Math.random() < REFUSE_CHANCE) {
       refusing = true;
       refCount++;
@@ -262,7 +281,7 @@
 
     score++;
     scoreEl.textContent = score;
-    escaped = false; // 잡으면 박스 안으로 복귀
+    escaped = false; 
     cat.classList.add('hit');
     reshapeCat();
     moveTimer = setTimeout(moveCat, 120);
@@ -271,9 +290,14 @@
 
   function startGame() {
     score = 0; time = GAME_TIME; playing = true;
-    escaped = false; escCount = 0; refCount = 0; refusing = false;
+    escaped = false; escCount = 0; refCount = 0; fakeCount = 0; refusing = false;
     scoreEl.textContent = 0; showTime();
-    escCountEl.textContent = 0; refCountEl.textContent = 0;
+    escCountEl.textContent = 0; refCountEl.textContent = 0; fakeCountEl.textContent = 0;
+    
+    // 게임 시작 시 기존 분신들 청소
+    fakeCats.forEach(fc => fc.remove());
+    fakeCats = [];
+
     cat.style.width = '80px';
     cat.style.height = '80px';
     cat.classList.remove('angry', 'hit');
@@ -282,7 +306,7 @@
     moveCat();
     clearInterval(clockTimer);
     clockTimer = setInterval(() => {
-      if (unlimited) return; // 무제한이면 시간이 줄지 않음
+      if (unlimited) return;
       time--;
       showTime();
       if (time <= 0) endGame();
@@ -294,6 +318,10 @@
     clearInterval(clockTimer);
     clearTimeout(moveTimer);
     cat.style.display = 'none';
+    
+    // 게임 끝나면 분신들도 숨기기
+    fakeCats.forEach(fc => fc.style.display = 'none');
+
     let extra = '';
     if (score > best) {
       best = score;
@@ -308,5 +336,3 @@
 
   document.getElementById('start').addEventListener('click', startGame);
 </script>
-</body>
-</html>
