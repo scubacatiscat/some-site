@@ -1,5 +1,1 @@
-/* 가짜 고양이 스타일 (필요시 시각적 차이를 둘 수 있음) */
-  .fake-cat { filter: grayscale(1); }
-  /* 분신 말풍선 스타일 */
-  .fake-cat #bubble { display: none; }
-  .fake-cat.angry #bubble { display: block; }
+
