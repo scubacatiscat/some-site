@@ -48,6 +48,14 @@
   #questIcon .emoji { font-size:2rem; line-height:44px; text-align:center; display:block; }
   #questText { display:none; margin-top:6px; padding:8px 10px; background:var(--card);
     font-size:.9rem; line-height:1.6; font-weight:700; }
+
+  /* 코드창 */
+  #code { position:fixed; right:8px; bottom:8px; z-index:20; display:flex; gap:8px; padding:8px;
+    background:#666; border:2px solid #8a4fff; }
+  #code .label { background:#fff; color:#000; font-weight:700; font-size:1rem; padding:8px 12px;
+    display:flex; align-items:center; }
+  #codeInput { width:150px; background:#fff; color:#000; border:0; padding:8px 10px;
+    font-size:16px; outline:none; user-select:text; -webkit-user-select:text; }
 </style>
 </head>
 <body>
@@ -73,6 +81,11 @@
     </div>
   </div>
 
+  <div id="code">
+    <div class="label">code</div>
+    <input id="codeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+  </div>
+
 <script>
   // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
   const CAT_IMG = '16.jpg';
@@ -84,7 +97,8 @@
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
   const REFUSE_CHANCE = 0.02;  // 점수 거절 확률 2%
-  const ANGRY_COLOR = false;   // true로 바꾸면 화난 사진만 컬러로 표시
+  const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
+  const ANGRY_COLOR = true;   // true로 바꾸면 화난 사진만 컬러로 표시
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
     '짜증납니다. 거절합니다.',
@@ -106,6 +120,8 @@
   const questText = document.getElementById('questText');
   const escCountEl = document.getElementById('escCount');
   const refCountEl = document.getElementById('refCount');
+  const codeBox = document.getElementById('code');
+  const codeInput = document.getElementById('codeInput');
 
   // 고양이 사진 넣기 (실패하면 이모지)
   const img = new Image();
@@ -142,9 +158,30 @@
 
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
   let escaped = false, escCount = 0, refCount = 0, refusing = false;
+  let unlimited = false;
   let best = 0;
   try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
   bestEl.textContent = best;
+
+  function showTime() {
+    timeEl.textContent = unlimited ? '∞' : time;
+  }
+
+  // 코드창: Enter로 입력
+  codeInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const v = codeInput.value.trim().toLowerCase();
+    codeInput.value = '';
+    if (v === 'inf') {
+      unlimited = !unlimited;
+      if (!unlimited) time = GAME_TIME;
+      showTime();
+      codeInput.placeholder = unlimited ? '무제한 적용됨' : '무제한 해제됨';
+    } else if (v) {
+      codeInput.placeholder = '알 수 없는 코드';
+    }
+    codeInput.blur();
+  });
 
   function randSize() {
     return MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE);
@@ -168,17 +205,18 @@
     return x < r.right && x + w > r.left && y < r.bottom && y + h > r.top;
   }
 
-  // 박스 밖 위치 (화면 안에서, 박스와 두루마리를 피함)
+  // 박스 밖 위치 (화면 안에서, 박스/두루마리/코드창을 피함)
   function placeOutside() {
     const r = field.getBoundingClientRect();
     const q = quest.getBoundingClientRect();
+    const c = codeBox.getBoundingClientRect();
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
     const w = cat.offsetWidth, h = cat.offsetHeight;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 80; i++) {
       const x = Math.random() * Math.max(0, vw - w);
       const y = Math.random() * Math.max(0, vh - h);
-      if (!hits(x, y, w, h, r) && !hits(x, y, w, h, q)) {
+      if (!hits(x, y, w, h, r) && !hits(x, y, w, h, q) && !hits(x, y, w, h, c)) {
         cat.style.left = (x - r.left) + 'px';
         cat.style.top = (y - r.top) + 'px';
         return;
@@ -210,7 +248,7 @@
     if (refusing) return; // 거절 중에는 입력 무시
     clearTimeout(moveTimer);
 
-    // 2% 확률로 짜증내며 점수 거절
+    // 2% 확률로 짜증내며 점수 거절 (4초)
     if (Math.random() < REFUSE_CHANCE) {
       refusing = true;
       refCount++;
@@ -218,7 +256,7 @@
       bubble.textContent = REFUSE_LINES[Math.floor(Math.random() * REFUSE_LINES.length)];
       cat.classList.add('angry');
       showAngryFace(true);
-      moveTimer = setTimeout(moveCat, 1200);
+      moveTimer = setTimeout(moveCat, REFUSE_TIME);
       return;
     }
 
@@ -234,7 +272,7 @@
   function startGame() {
     score = 0; time = GAME_TIME; playing = true;
     escaped = false; escCount = 0; refCount = 0; refusing = false;
-    scoreEl.textContent = 0; timeEl.textContent = GAME_TIME;
+    scoreEl.textContent = 0; showTime();
     escCountEl.textContent = 0; refCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
@@ -242,9 +280,11 @@
     showAngryFace(false);
     overlay.style.display = 'none';
     moveCat();
+    clearInterval(clockTimer);
     clockTimer = setInterval(() => {
+      if (unlimited) return; // 무제한이면 시간이 줄지 않음
       time--;
-      timeEl.textContent = time;
+      showTime();
       if (time <= 0) endGame();
     }, 1000);
   }
