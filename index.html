@@ -32,16 +32,16 @@
 </style>
 </head>
 <body>
-  <h1>🐱 고양이 잡기</h1>
+  <h1> catch cat</h1>
   <div class="bar">
-    <div>점수 <span id="score">0</span></div>
-    <div>시간 <span id="time">30</span></div>
-    <div>최고 <span id="best">0</span></div>
+    <div>score <span id="score">0</span></div>
+    <div>time <span id="time">30</span></div>
+    <div>best <span id="best">0</span></div>
   </div>
   <div id="field">
     <div id="cat"></div>
     <div id="overlay">
-      <p id="msg">고양이를 눌러서 잡으세요!<br>30초 안에 몇 번 잡을 수 있을까요?</p>
+      <p id="msg">고양이를 잡아보세요<br>...?</p>
       <button id="start">시작</button>
     </div>
   </div>
@@ -59,10 +59,10 @@
   const bestEl = document.getElementById('best');
 
   // 고양이 사진 넣기 (실패하면 이모지)
-  const img = new Image();
+  const img = 16.jpg();
   img.src = CAT_IMG;
   img.alt = '고양이';
-  img.onerror = () => { cat.innerHTML = '<span class="emoji">🐱</span>'; };
+  img.onerror = () => { cat.innerHTML = '<span class="16.jpg">
   cat.appendChild(img);
 
   let score = 0, time = 30, moveTimer = null, clockTimer = null, playing = false;
