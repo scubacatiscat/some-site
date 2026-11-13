@@ -9,15 +9,15 @@
   @media (prefers-color-scheme: dark) {
     :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; }
   }
-  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0 !important; }
   html, body { height:100%; margin:0; }
   body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
     display:flex; flex-direction:column; align-items:center; padding:16px; user-select:none; }
   h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
   .bar { display:flex; gap:12px; margin-bottom:10px; font-weight:700; }
-  .bar div { background:var(--card); padding:6px 14px; border-radius:999px; }
+  .bar div { background:var(--card); padding:6px 14px; }
   #field { position:relative; width:100%; max-width:560px; flex:1; max-height:520px; min-height:300px;
-    background:var(--card); border-radius:20px; touch-action:manipulation; }
+    background:var(--card); touch-action:manipulation; }
   #cat { position:absolute; width:80px; height:80px; cursor:pointer; display:none; z-index:5;
     transition:left .12s, top .12s, opacity .12s; filter:grayscale(1); }
   #cat img { width:100%; height:100%; object-fit:fill; display:block; pointer-events:none; }
@@ -25,15 +25,29 @@
     width:100%; height:100%; }
   #cat.hit { opacity:.3; }
   #overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap:12px; text-align:center; padding:16px; border-radius:20px; z-index:10;
+    justify-content:center; gap:12px; text-align:center; padding:16px; z-index:10;
     background:color-mix(in srgb, var(--card) 88%, transparent); }
   #overlay p { margin:0; font-size:1.1rem; line-height:1.6; }
-  button { background:var(--btn); color:var(--btn-fg); border:0; border-radius:12px; padding:12px 28px;
+  button { background:var(--btn); color:var(--btn-fg); border:0; padding:12px 28px;
     font-size:1.1rem; font-weight:700; cursor:pointer; }
   button:active { transform:scale(.96); }
+
+  /* 퀘스트 두루마리 */
+  #quest { position:fixed; top:8px; left:8px; z-index:20; width:190px; }
+  #questIcon { width:44px; height:44px; cursor:pointer; display:block; }
+  #questIcon img { width:100%; height:100%; object-fit:contain; display:block;
+    image-rendering:pixelated; pointer-events:none; }
+  #questIcon .emoji { font-size:2rem; line-height:44px; text-align:center; display:block; }
+  #questText { display:none; margin-top:6px; padding:8px 10px; background:var(--card);
+    font-size:.9rem; line-height:1.5; font-weight:700; }
 </style>
 </head>
 <body>
+  <div id="quest">
+    <div id="questIcon"></div>
+    <div id="questText">고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번</div>
+  </div>
+
   <h1>catch cat</h1>
   <div class="bar">
     <div>time <span id="time">30</span></div>
@@ -51,9 +65,10 @@
 <script>
   // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
   const CAT_IMG = '16.jpg';
+  const QUEST_IMG = '퀘스트롤픽셀.jpg';
 
   const MIN_SIZE = 30, MAX_SIZE = 160;
-  const SLOW = 2.5;          // 이동 간격 배수 (빈도 10 -> 4)
+  const SLOW = 2.5;           // 이동 간격 배수 (빈도 10 -> 4)
   const ESCAPE_CHANCE = 0.01; // 박스 탈출 확률 1%
 
   const field = document.getElementById('field');
@@ -63,6 +78,10 @@
   const scoreEl = document.getElementById('score');
   const timeEl = document.getElementById('time');
   const bestEl = document.getElementById('best');
+  const quest = document.getElementById('quest');
+  const questIcon = document.getElementById('questIcon');
+  const questText = document.getElementById('questText');
+  const escCountEl = document.getElementById('escCount');
 
   // 고양이 사진 넣기 (실패하면 이모지)
   const img = new Image();
@@ -72,8 +91,21 @@
   img.onerror = () => { cat.innerHTML = '<span class="emoji">🐱</span>'; };
   cat.appendChild(img);
 
+  // 퀘스트 두루마리 사진 넣기 (실패하면 이모지)
+  const qimg = new Image();
+  qimg.src = QUEST_IMG;
+  qimg.alt = '퀘스트';
+  qimg.draggable = false;
+  qimg.onerror = () => { questIcon.innerHTML = '<span class="emoji">📜</span>'; };
+  questIcon.appendChild(qimg);
+
+  // 클릭하면 아래 글씨 열고 닫기
+  questIcon.addEventListener('click', () => {
+    questText.style.display = (questText.style.display === 'block') ? 'none' : 'block';
+  });
+
   let score = 0, time = 30, moveTimer = null, clockTimer = null, playing = false;
-  let escaped = false;
+  let escaped = false, escCount = 0;
   let best = 0;
   try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
   bestEl.textContent = best;
@@ -96,31 +128,39 @@
     cat.style.top = Math.random() * maxY + 'px';
   }
 
-  // 박스 밖 위치 (화면 안에서, 박스와 겹치지 않게)
+  function hits(x, y, w, h, r) {
+    return x < r.right && x + w > r.left && y < r.bottom && y + h > r.top;
+  }
+
+  // 박스 밖 위치 (화면 안에서, 박스와 두루마리를 피함)
   function placeOutside() {
     const r = field.getBoundingClientRect();
+    const q = quest.getBoundingClientRect();
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
     const w = cat.offsetWidth, h = cat.offsetHeight;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 60; i++) {
       const x = Math.random() * Math.max(0, vw - w);
       const y = Math.random() * Math.max(0, vh - h);
-      const overlap = x < r.right && x + w > r.left && y < r.bottom && y + h > r.top;
-      if (!overlap) {
+      if (!hits(x, y, w, h, r) && !hits(x, y, w, h, q)) {
         cat.style.left = (x - r.left) + 'px';
         cat.style.top = (y - r.top) + 'px';
         return;
       }
     }
-    // 빈 공간이 없으면 화면 왼쪽 위 모서리에 배치
-    cat.style.left = (-r.left) + 'px';
+    // 빈 공간이 없으면 화면 오른쪽 위 모서리에 배치
+    cat.style.left = (vw - w - r.left) + 'px';
     cat.style.top = (-r.top) + 'px';
   }
 
   function moveCat() {
     if (!playing) return;
     cat.classList.remove('hit');
-    if (!escaped && Math.random() < ESCAPE_CHANCE) escaped = true;
+    if (!escaped && Math.random() < ESCAPE_CHANCE) {
+      escaped = true;
+      escCount++;
+      escCountEl.textContent = escCount;
+    }
     if (escaped) placeOutside(); else placeInside();
     cat.style.display = 'block';
     const delay = Math.max(350, 900 - score * 25) * SLOW;
@@ -141,8 +181,8 @@
   cat.addEventListener('pointerdown', catchCat);
 
   function startGame() {
-    score = 0; time = 30; playing = true; escaped = false;
-    scoreEl.textContent = 0; timeEl.textContent = 30;
+    score = 0; time = 30; playing = true; escaped = false; escCount = 0;
+    scoreEl.textContent = 0; timeEl.textContent = 30; escCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
     overlay.style.display = 'none';
@@ -171,6 +211,10 @@
     overlay.style.display = 'flex';
   }
 
+  document.getElementById('start').addEventListener('click', startGame);
+</script>
+</body>
+</html>
   document.getElementById('start').addEventListener('click', startGame);
 </script>
 </body>
