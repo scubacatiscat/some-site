@@ -3,55 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>고양이 잡기</title>
+<title>catch cat</title>
 <style>
-  :root { --bg:#fff7ec; --fg:#3b2a1a; --card:#ffe3b8; --btn:#ff8a3d; --btn-fg:#fff; }
+  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#1d1712; --fg:#f5e6d3; --card:#33281d; --btn:#ff8a3d; --btn-fg:#1d1712; }
+    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; }
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; margin:0; }
   body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
     display:flex; flex-direction:column; align-items:center; padding:16px; user-select:none; }
-  h1 { margin:4px 0 8px; font-size:1.6rem; }
+  h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
   .bar { display:flex; gap:12px; margin-bottom:10px; font-weight:700; }
   .bar div { background:var(--card); padding:6px 14px; border-radius:999px; }
   #field { position:relative; width:100%; max-width:560px; flex:1; max-height:520px; min-height:300px;
     background:var(--card); border-radius:20px; overflow:hidden; touch-action:manipulation; }
   #cat { position:absolute; width:80px; height:80px; cursor:pointer; display:none;
-    transition:left .12s, top .12s; }
-  #cat img { width:100%; height:100%; object-fit:cover; border-radius:50%; pointer-events:none; }
+    transition:left .12s, top .12s, opacity .12s; }
+  #cat .pulse { width:100%; height:100%; animation:pulse 1.2s ease-in-out infinite; filter:grayscale(1); }
+  #cat img { width:100%; height:100%; object-fit:contain; display:block; }
   #cat .emoji { font-size:3.2rem; line-height:80px; text-align:center; display:block; }
-  #cat.hit { transform:scale(1.4) rotate(20deg); opacity:.4; }
+  #cat.hit { opacity:.3; }
+  @keyframes pulse { 0%,100% { transform:scale(.5); } 50% { transform:scale(1.5); } }
   #overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap:12px; text-align:center; background:color-mix(in srgb, var(--card) 88%, transparent); }
-  #overlay p { margin:0; font-size:1.1rem; }
+    justify-content:center; gap:12px; text-align:center; padding:16px;
+    background:color-mix(in srgb, var(--card) 88%, transparent); }
+  #overlay p { margin:0; font-size:1.1rem; line-height:1.6; }
   button { background:var(--btn); color:var(--btn-fg); border:0; border-radius:12px; padding:12px 28px;
     font-size:1.1rem; font-weight:700; cursor:pointer; }
   button:active { transform:scale(.96); }
 </style>
 </head>
 <body>
-  <h1> catch cat</h1>
+  <h1>catch cat</h1>
   <div class="bar">
-    <div>score <span id="score">0</span></div>
     <div>time <span id="time">30</span></div>
+    <div>score <span id="score">0</span></div>
     <div>best <span id="best">0</span></div>
   </div>
   <div id="field">
-    <div id="cat"></div>
+    <div id="cat"><div class="pulse" id="pulse"></div></div>
     <div id="overlay">
-      <p id="msg">고양이를 잡아보세요<br>...?</p>
+      <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 30초입니다.</p>
       <button id="start">시작</button>
     </div>
   </div>
 
 <script>
-  // ★ 올린 사진 파일 이름으로 바꾸세요 (대소문자, 확장자 똑같이)
-  const CAT_IMG = '16.jpg';
+  // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
+  const CAT_IMG = '21.gif';
 
   const field = document.getElementById('field');
   const cat = document.getElementById('cat');
+  const pulse = document.getElementById('pulse');
   const overlay = document.getElementById('overlay');
   const msg = document.getElementById('msg');
   const scoreEl = document.getElementById('score');
@@ -59,11 +63,12 @@
   const bestEl = document.getElementById('best');
 
   // 고양이 사진 넣기 (실패하면 이모지)
-  const img = 16.jpg();
+  const img = new Image();
   img.src = CAT_IMG;
   img.alt = '고양이';
-  img.onerror = () => { cat.innerHTML = '<span class="16.jpg">
-  cat.appendChild(img);
+  img.draggable = false;
+  img.onerror = () => { pulse.innerHTML = '<span class="emoji">🐱</span>'; };
+  pulse.appendChild(img);
 
   let score = 0, time = 30, moveTimer = null, clockTimer = null, playing = false;
   let best = 0;
@@ -115,10 +120,10 @@
       best = score;
       bestEl.textContent = best;
       try { localStorage.setItem('catBest', best); } catch (e) {}
-      extra = '<br> 최고기록 달성';
+      extra = '<br>최고 기록을 경신하셨네요.';
     }
-    msg.innerHTML = '고양이를 <b>' + score + '</b>번 잡으셨네요.' + extra;
-    document.getElementById('start').textContent = '다시 하기';
+    msg.innerHTML = '시간이 종료되었습니다.<br>고양이를 <b>' + score + '</b>번 잡으셨네요.' + extra;
+    document.getElementById('start').textContent = '다시 시작';
     overlay.style.display = 'flex';
   }
 
