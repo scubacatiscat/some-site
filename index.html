@@ -20,6 +20,7 @@
     background:var(--card); touch-action:manipulation; }
   #cat { position:absolute; width:80px; height:80px; cursor:pointer; display:none; z-index:5;
     transition:left .12s, top .12s, opacity .12s; filter:grayscale(1); }
+  #cat.color { filter:none; }
   #face { width:100%; height:100%; }
   #face img { width:100%; height:100%; object-fit:fill; display:block; pointer-events:none; }
   #face .emoji { font-size:3.2rem; line-height:1; display:flex; align-items:center; justify-content:center;
@@ -75,6 +76,7 @@
 <script>
   // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
   const CAT_IMG = '16.jpg';
+  const ANGRY_IMG = '22.gif';
   const QUEST_IMG = '퀘스트롤픽셀.jpg';
 
   const GAME_TIME = 45;        // 제한 시간(초)
@@ -82,6 +84,7 @@
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
   const REFUSE_CHANCE = 0.02;  // 점수 거절 확률 2%
+  const ANGRY_COLOR = false;   // true로 바꾸면 화난 사진만 컬러로 표시
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
     '짜증납니다. 거절합니다.',
@@ -111,6 +114,18 @@
   img.draggable = false;
   img.onerror = () => { face.innerHTML = '<span class="emoji">🐱</span>'; };
   face.appendChild(img);
+
+  // 화난 고양이 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  let angryOk = true;
+  const angryImg = new Image();
+  angryImg.src = ANGRY_IMG;
+  angryImg.onerror = () => { angryOk = false; };
+
+  function showAngryFace(on) {
+    if (!angryOk || !face.contains(img)) return;
+    img.src = on ? ANGRY_IMG : CAT_IMG;
+    cat.classList.toggle('color', on && ANGRY_COLOR);
+  }
 
   // 퀘스트 두루마리 사진 넣기 (실패하면 이모지)
   const qimg = new Image();
@@ -177,6 +192,7 @@
     if (!playing) return;
     refusing = false;
     cat.classList.remove('hit', 'angry');
+    showAngryFace(false);
     if (!escaped && Math.random() < ESCAPE_CHANCE) {
       escaped = true;
       escCount++;
@@ -201,6 +217,7 @@
       refCountEl.textContent = refCount;
       bubble.textContent = REFUSE_LINES[Math.floor(Math.random() * REFUSE_LINES.length)];
       cat.classList.add('angry');
+      showAngryFace(true);
       moveTimer = setTimeout(moveCat, 1200);
       return;
     }
@@ -221,6 +238,8 @@
     escCountEl.textContent = 0; refCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
+    cat.classList.remove('angry', 'hit');
+    showAngryFace(false);
     overlay.style.display = 'none';
     moveCat();
     clockTimer = setInterval(() => {
