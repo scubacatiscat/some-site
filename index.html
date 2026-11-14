@@ -102,13 +102,13 @@
   <div id="quest">
     <div id="questIcon"></div>
     <div id="questText">
-      고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 1%)<br>
-      고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 2%)<br>
-      고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 5%)<br>
-      화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 2.5%)<br>
-      신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 3.5%)<br>
-      고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
-      고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
+      고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 0.8%)<br>
+      고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 1%)<br>
+      고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 3%)<br>
+      화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 1.5%)<br>
+      신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 2%)<br>
+      고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 2%)<br>
+      고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.2%)<br>
       고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)
     </div>
   </div>
@@ -162,30 +162,30 @@
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
-  const GAME_TIME = 45;        // 제한 시간(초)
+  const GAME_TIME = 60;        // 제한 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
-  const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
-  const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
-  const REFUSE_CHANCE = 0.02;  // 점수 거절 확률 2%
-  const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
-  const CLONE_CHANCE = 0.05;   // 분신술 확률 5%
+  const SLOW = 3;            // 이동 간격 배수 (클수록 느려짐)
+  const ESCAPE_CHANCE = 0.008;  // 박스 탈출 확률 0.8%
+  const REFUSE_CHANCE = 0.01;  // 점수 거절 확률 1%
+  const REFUSE_TIME = 2000;    // 점수 거절 지속 시간 (2초)
+  const CLONE_CHANCE = 0.03;   // 분신술 확률 3%
   const CLONE_MIN = 2, CLONE_MAX = 4; // 분신 수 (진짜 제외)
-  const ROTATE_CHANCE = 0.025; // 화면 회전 확률 2.5% (이동 1회당)
-  const HAND_CHANCE = 0.035;   // 신의 손 확률 3.5% (이동 1회당)
-  const HAND_TIME = 2000;      // 신의 손 지속 시간 (2초)
-  const HAND_SCORE = 2;        // 신의 손이 주는 점수
-  const SLEEP_CHANCE = 0.03;   // 졸린 고양이 확률 3% (이동 1회당)
-  const SLEEP_TIME = 3000;     // 자는 시간 (3초)
+  const ROTATE_CHANCE = 0.015; // 화면 회전 확률 1.5% (이동 1회당)
+  const HAND_CHANCE = 0.02;   // 신의 손 확률 2% (이동 1회당)
+  const HAND_TIME = 1200;      // 신의 손 지속 시간 (1.2초)
+  const HAND_SCORE = 3;        // 신의 손이 주는 점수
+  const SLEEP_CHANCE = 0.02;   // 졸린 고양이 확률 2% (이동 1회당)
+  const SLEEP_TIME = 2550;     // 자는 시간 (2.55초)
   const SLEEP_PENALTY = 2;     // 자는 고양이를 깨웠을 때 깎이는 점수
-  const WAKE_ANGRY_TIME = 1500;// 깨어나서 화내는 시간 (1.5초)
+  const WAKE_ANGRY_TIME = 1000;// 깨어나서 화내는 시간 (1초)
   const GUN_CHANCE = 0.0012;   // 총 든 고양이 확률 0.12% (이동 1회당)
-  const FAKE_GUN_CHANCE = 0.005; // 가짜 총 확률 0.5% (이동 1회당)
+  const FAKE_GUN_CHANCE = 0.002; // 가짜 총 확률 0.2% (이동 1회당)
   const GUN_SHOW_TIME = 2000;  // 총 든 사진 표시 시간 (2초)
   const FAKE_REVEAL_TIME = 1500; // 가짜 총 정체가 드러난 뒤 머무는 시간 (1.5초)
-  const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
+  const EFFECT_TIME = 5000;    // 억까 효과 지속 시간 (5초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
-  const RANK_MAX = 10;         // 랭킹 표시 인원
-  const NICK_MAX = 10;         // 닉네임 최대 글자 수
+  const RANK_MAX = 12;         // 랭킹 표시 인원
+  const NICK_MAX = 15;         // 닉네임 최대 글자 수
   const NICK_CHANGES_MAX = 3;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
