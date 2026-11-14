@@ -73,7 +73,7 @@
   #rank .note { margin-top:6px; font-size:.8rem; text-align:center; }
 
   /* 퀘스트 두루마리 */
-  #quest { position:fixed; top:8px; left:8px; z-index:20; width:270px; }
+  #quest { position:fixed; top:8px; left:8px; z-index:20; width:290px; }
   #questIcon { width:44px; height:44px; cursor:pointer; display:block; }
   #questIcon img { width:100%; height:100%; object-fit:contain; display:block;
     image-rendering:pixelated; pointer-events:none; }
@@ -107,6 +107,8 @@
       고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 5%)<br>
       화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 2.5%)<br>
       신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 3.5%)<br>
+      고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
+      고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
       고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)
     </div>
   </div>
@@ -149,6 +151,7 @@
   const CAT_IMG = '16.jpg';
   const ANGRY_IMG = '22.gif';
   const GUN_IMG = '총든_21.png';
+  const SLEEP_IMG = 'zzz캣-removebg-preview.png';
   const HAND_IMG = '신의손-removebg-preview.png';
   const TREE_IMG = 'tree.jpg';
   const QUEST_IMG = '퀘스트롤픽셀.jpg';
@@ -171,8 +174,14 @@
   const HAND_CHANCE = 0.035;   // 신의 손 확률 3.5% (이동 1회당)
   const HAND_TIME = 2000;      // 신의 손 지속 시간 (2초)
   const HAND_SCORE = 2;        // 신의 손이 주는 점수
+  const SLEEP_CHANCE = 0.03;   // 졸린 고양이 확률 3% (이동 1회당)
+  const SLEEP_TIME = 3000;     // 자는 시간 (3초)
+  const SLEEP_PENALTY = 2;     // 자는 고양이를 깨웠을 때 깎이는 점수
+  const WAKE_ANGRY_TIME = 1500;// 깨어나서 화내는 시간 (1.5초)
   const GUN_CHANCE = 0.0012;   // 총 든 고양이 확률 0.12% (이동 1회당)
+  const FAKE_GUN_CHANCE = 0.005; // 가짜 총 확률 0.5% (이동 1회당)
   const GUN_SHOW_TIME = 2000;  // 총 든 사진 표시 시간 (2초)
+  const FAKE_REVEAL_TIME = 1500; // 가짜 총 정체가 드러난 뒤 머무는 시간 (1.5초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
   const RANK_MAX = 10;         // 랭킹 표시 인원
@@ -213,6 +222,8 @@
   const cloneCountEl = document.getElementById('cloneCount');
   const rotCountEl = document.getElementById('rotCount');
   const handCountEl = document.getElementById('handCount');
+  const sleepCountEl = document.getElementById('sleepCount');
+  const fakeCountEl = document.getElementById('fakeCount');
   const gunCountEl = document.getElementById('gunCount');
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
@@ -260,20 +271,30 @@
   timg.onerror = () => { treeBox.innerHTML = '<span style="font-size:4rem">🌳</span>'; };
   treeBox.appendChild(timg);
 
-  // 화난 / 총 든 사진 미리 불러오기 (실패하면 평소 사진 유지)
-  let angryOk = true, gunOk = true;
+  // 화난 / 총 든 / 자는 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  let angryOk = true, gunOk = true, sleepOk = true;
   const angryImg = new Image();
   angryImg.src = ANGRY_IMG;
   angryImg.onerror = () => { angryOk = false; };
   const gunImg = new Image();
   gunImg.src = GUN_IMG;
   gunImg.onerror = () => { gunOk = false; };
+  const sleepImg = new Image();
+  sleepImg.src = SLEEP_IMG;
+  sleepImg.onerror = () => { sleepOk = false; };
 
   function showAngryFace(on) {
     if (!face.contains(img)) return;
     if (on && !angryOk) return;
     img.src = on ? ANGRY_IMG : CAT_IMG;
     cat.classList.toggle('color', on && ANGRY_COLOR);
+  }
+
+  function showSleepFace(on) {
+    if (!face.contains(img)) return;
+    if (on && !sleepOk) return;
+    img.src = on ? SLEEP_IMG : CAT_IMG;
+    cat.classList.remove('color');
   }
 
   // 퀘스트 두루마리 사진 넣기 (실패하면 이모지)
@@ -290,8 +311,9 @@
   });
 
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
-  let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0, gunCount = 0;
-  let refusing = false, held = false, starting = false;
+  let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
+  let sleepCount = 0, fakeCount = 0, gunCount = 0;
+  let refusing = false, held = false, sleeping = false, starting = false;
   let unlimited = false, usedInf = false;
   let clones = [];
   // 억까 효과 상태
@@ -562,7 +584,7 @@
       run() { timed('ghost', () => field.classList.add('ghost'), () => field.classList.remove('ghost'), EFFECT_TIME); } },
     { name: '분신술이 강제로 발동되었습니다.',
       run() {
-        if (clones.length === 0 && !held) {
+        if (clones.length === 0 && !held && !sleeping) {
           escaped = false;
           placeEl(cat);
           cat.style.display = 'block';
@@ -721,6 +743,53 @@
     moveTimer = setTimeout(moveCat, HAND_TIME);
   }
 
+  // ---------- 졸린 고양이 (자는 동안 누르면 깨어나서 화내며 감점) ----------
+  function sleepCat() {
+    sleepCount++;
+    sleepCountEl.textContent = sleepCount;
+    clearClones();
+    escaped = false;
+    refusing = false;
+    held = false;
+    cat.classList.remove('hit', 'angry', 'held', 'color');
+    placeEl(cat);
+    cat.style.display = 'block';
+    sleeping = true;
+    showSleepFace(true);
+    moveTimer = setTimeout(moveCat, SLEEP_TIME);
+  }
+
+  // ---------- 가짜 총 (진짜와 똑같이 나오지만 장전되지 않음) ----------
+  function fakeGun() {
+    fakeCount++;
+    fakeCountEl.textContent = fakeCount;
+    clearClones();
+    refusing = false;
+    escaped = false;
+    sleeping = false;
+    held = true; // 이 동안 클릭 무시
+    cat.classList.remove('hit', 'angry', 'held', 'color');
+    if (gunOk && face.contains(img)) {
+      img.src = GUN_IMG;
+      cat.classList.add('color');
+    }
+    cat.style.width = '170px';
+    cat.style.height = '160px';
+    placeEl(cat);
+    bubble.textContent = '게임을 종료합니다.';
+    cat.classList.add('gun');
+    cat.style.display = 'block';
+    moveTimer = setTimeout(() => {
+      bubble.textContent = '...장전되지 않았습니다.';
+      moveTimer = setTimeout(() => {
+        cat.classList.remove('gun');
+        cat.style.width = tiny ? MIN_SIZE + 'px' : '80px';
+        cat.style.height = tiny ? MIN_SIZE + 'px' : '80px';
+        moveCat();
+      }, FAKE_REVEAL_TIME);
+    }, GUN_SHOW_TIME);
+  }
+
   // ---------- 총 든 고양이 (총 사진 2초 표시 후 게임 오버) ----------
   function gunEnding(bubbleText, reason) {
     playing = false;
@@ -730,6 +799,7 @@
     clearClones();
     refusing = false;
     held = false;
+    sleeping = false;
     escaped = false;
     gunCount++;
     gunCountEl.textContent = gunCount;
@@ -756,9 +826,21 @@
       return;
     }
 
+    // 0.5% 확률로 가짜 총
+    if (Math.random() < FAKE_GUN_CHANCE) {
+      fakeGun();
+      return;
+    }
+
     // 3.5% 확률로 신의 손 등장
     if (Math.random() < HAND_CHANCE) {
       handGrab();
+      return;
+    }
+
+    // 3% 확률로 졸린 고양이
+    if (Math.random() < SLEEP_CHANCE) {
+      sleepCat();
       return;
     }
 
@@ -772,7 +854,8 @@
 
     refusing = false;
     held = false;
-    cat.classList.remove('hit', 'angry', 'held', 'color');
+    sleeping = false;
+    cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
     showAngryFace(false);
 
     const cloning = clones.length > 0;
@@ -802,8 +885,21 @@
   function catchCat(e) {
     if (!playing) return;
     e.preventDefault();
-    if (refusing || held) return; // 거절 중 / 신의 손에 잡힌 중에는 입력 무시
+    if (refusing || held) return; // 거절 중 / 붙잡힌 중 / 가짜 총 중에는 입력 무시
     clearTimeout(moveTimer);
+
+    // 자는 고양이를 깨우면 화내며 감점
+    if (sleeping) {
+      sleeping = false;
+      refusing = true; // 화내는 동안 입력 무시
+      score = Math.max(0, score - SLEEP_PENALTY);
+      scoreEl.textContent = score;
+      bubble.textContent = '깨우지 마십시오. -' + SLEEP_PENALTY;
+      cat.classList.add('angry');
+      showAngryFace(true);
+      moveTimer = setTimeout(moveCat, WAKE_ANGRY_TIME);
+      return;
+    }
 
     // 확률로 짜증내며 점수 거절 (4초)
     if (Math.random() < refuseChance) {
@@ -838,17 +934,19 @@
     setRankOpen(false);
 
     score = 0; time = GAME_TIME; playing = true;
-    escaped = false; refusing = false; held = false;
+    escaped = false; refusing = false; held = false; sleeping = false;
     usedInf = unlimited;
-    escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0; gunCount = 0;
+    escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0;
+    sleepCount = 0; fakeCount = 0; gunCount = 0;
     clearClones();
     resetEffects();
     scoreEl.textContent = 0; showTime();
     escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
-    rotCountEl.textContent = 0; handCountEl.textContent = 0; gunCountEl.textContent = 0;
+    rotCountEl.textContent = 0; handCountEl.textContent = 0;
+    sleepCountEl.textContent = 0; fakeCountEl.textContent = 0; gunCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
-    cat.classList.remove('angry', 'hit', 'gun', 'held');
+    cat.classList.remove('angry', 'hit', 'gun', 'held', 'color');
     showAngryFace(false);
     playBgm(true);
     overlay.style.display = 'none';
@@ -865,6 +963,7 @@
   function endGame(reason) {
     playing = false;
     held = false;
+    sleeping = false;
     stopBgm();
     clearInterval(clockTimer);
     clearTimeout(moveTimer);
