@@ -17,12 +17,14 @@
   .bar { display:flex; gap:12px; margin-bottom:10px; font-weight:700; }
   .bar div { background:var(--card); padding:6px 14px; }
   #field { position:relative; width:100%; max-width:560px; flex:1; max-height:520px; min-height:300px;
-    background:var(--card); touch-action:manipulation; }
+    background:var(--card); touch-action:manipulation; transition:transform .4s; }
+  #field.flip { transform:rotate(180deg); }
   #cat, .clone { position:absolute; width:80px; height:80px; cursor:pointer; z-index:5;
     transition:left .12s, top .12s, opacity .12s; filter:grayscale(1); }
   #cat { display:none; }
   .clone { z-index:4; }
   #cat.color { filter:none; }
+  #field.ghost #cat, #field.ghost .clone { opacity:.12; }
   #face, .clone .cface { width:100%; height:100%; }
   #face img, .clone .cface img { width:100%; height:100%; object-fit:fill; display:block; pointer-events:none; }
   #face .emoji, .clone .cface .emoji { font-size:3.2rem; line-height:1; display:flex; align-items:center;
@@ -33,7 +35,7 @@
   #bubble { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:6px;
     display:none; white-space:nowrap; background:var(--bg); color:var(--fg); border:2px solid var(--fg);
     padding:4px 10px; font-size:.85rem; font-weight:700; pointer-events:none; }
-  #cat.angry #bubble { display:block; }
+  #cat.angry #bubble, #cat.gun #bubble { display:block; }
   #overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
     justify-content:center; gap:12px; text-align:center; padding:16px; z-index:10;
     background:color-mix(in srgb, var(--card) 88%, transparent); }
@@ -58,6 +60,8 @@
     display:flex; align-items:center; }
   #codeInput { width:150px; background:#fff; color:#000; border:0; padding:8px 10px;
     font-size:16px; outline:none; user-select:text; -webkit-user-select:text; }
+  #toast { position:fixed; right:8px; bottom:78px; z-index:20; max-width:260px; display:none;
+    padding:8px 12px; background:var(--card); font-weight:700; font-size:.9rem; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -84,6 +88,7 @@
     </div>
   </div>
 
+  <div id="toast"></div>
   <div id="code">
     <div class="label">code</div>
     <input id="codeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -93,6 +98,7 @@
   // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
   const CAT_IMG = '16.jpg';
   const ANGRY_IMG = '22.gif';
+  const GUN_IMG = '총든_21.png';
   const QUEST_IMG = '퀘스트롤픽셀.jpg';
 
   const GAME_TIME = 45;        // 제한 시간(초)
@@ -103,7 +109,9 @@
   const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
   const CLONE_CHANCE = 0.05;   // 분신술 확률 5%
   const CLONE_MIN = 2, CLONE_MAX = 4; // 분신 수 (진짜 제외)
-  const ANGRY_COLOR = false;   // true로 바꾸면 화난 사진만 컬러로 표시
+  const GUN_CHANCE = 0.002;    // 총 든 고양이 확률 0.2% (이동 1회당)
+  const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
+  const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
     '짜증납니다. 거절합니다.',
@@ -128,6 +136,7 @@
   const cloneCountEl = document.getElementById('cloneCount');
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
+  const toast = document.getElementById('toast');
 
   // 고양이 사진 넣기 (실패하면 이모지)
   const img = new Image();
@@ -137,14 +146,18 @@
   img.onerror = () => { face.innerHTML = '<span class="emoji">🐱</span>'; };
   face.appendChild(img);
 
-  // 화난 고양이 사진 미리 불러오기 (실패하면 평소 사진 유지)
-  let angryOk = true;
+  // 화난 / 총 든 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  let angryOk = true, gunOk = true;
   const angryImg = new Image();
   angryImg.src = ANGRY_IMG;
   angryImg.onerror = () => { angryOk = false; };
+  const gunImg = new Image();
+  gunImg.src = GUN_IMG;
+  gunImg.onerror = () => { gunOk = false; };
 
   function showAngryFace(on) {
-    if (!angryOk || !face.contains(img)) return;
+    if (!face.contains(img)) return;
+    if (on && !angryOk) return;
     img.src = on ? ANGRY_IMG : CAT_IMG;
     cat.classList.toggle('color', on && ANGRY_COLOR);
   }
@@ -166,12 +179,78 @@
   let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, refusing = false;
   let unlimited = false;
   let clones = [];
+  // 억까 효과 상태
+  let speedMul = 1, tiny = false, refuseChance = REFUSE_CHANCE, flipped = false;
+  const effectTimers = {};
+  let toastTimer = null;
   let best = 0;
   try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
   bestEl.textContent = best;
 
   function showTime() {
     timeEl.textContent = unlimited ? '∞' : time;
+  }
+
+  function showToast(text) {
+    toast.textContent = text;
+    toast.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  }
+
+  // 일정 시간 동안만 켜지는 효과 (같은 효과를 다시 받으면 시간 갱신)
+  function timed(key, on, off, ms) {
+    on();
+    clearTimeout(effectTimers[key]);
+    effectTimers[key] = setTimeout(() => { off(); delete effectTimers[key]; }, ms);
+  }
+
+  function resetEffects() {
+    Object.values(effectTimers).forEach(clearTimeout);
+    for (const k in effectTimers) delete effectTimers[k];
+    speedMul = 1; tiny = false; refuseChance = REFUSE_CHANCE; flipped = false;
+    field.classList.remove('ghost', 'flip');
+  }
+
+  // 억까 효과 목록
+  const EFFECTS = [
+    { name: '시간이 5초 감소했습니다.', limitedOnly: true,
+      run() { time = Math.max(1, time - 5); showTime(); } },
+    { name: '점수가 2점 차감되었습니다.',
+      run() { score = Math.max(0, score - 2); scoreEl.textContent = score; } },
+    { name: '6초간 고양이 속도가 증가합니다.',
+      run() { timed('speed', () => { speedMul = 0.25; }, () => { speedMul = 1; }, EFFECT_TIME); } },
+    { name: '6초간 화면이 회전합니다.',
+      run() {
+        escaped = false;
+        timed('flip', () => { flipped = true; field.classList.add('flip'); },
+                      () => { flipped = false; field.classList.remove('flip'); }, EFFECT_TIME);
+      } },
+    { name: '6초간 고양이 크기가 최소화됩니다.',
+      run() {
+        timed('tiny', () => { tiny = true; cat.style.width = MIN_SIZE + 'px'; cat.style.height = MIN_SIZE + 'px'; },
+                      () => { tiny = false; }, EFFECT_TIME);
+      } },
+    { name: '6초간 고양이가 투명해집니다.',
+      run() { timed('ghost', () => field.classList.add('ghost'), () => field.classList.remove('ghost'), EFFECT_TIME); } },
+    { name: '분신술이 강제로 발동되었습니다.',
+      run() {
+        if (clones.length === 0) {
+          escaped = false;
+          placeEl(cat);
+          cat.style.display = 'block';
+          spawnClones();
+        }
+      } },
+    { name: '6초간 점수 거절 확률이 50%가 됩니다.',
+      run() { timed('refuse', () => { refuseChance = 0.5; }, () => { refuseChance = REFUSE_CHANCE; }, EFFECT_TIME); } }
+  ];
+
+  function applyRandomEffect() {
+    const pool = EFFECTS.filter(f => !(unlimited && f.limitedOnly));
+    const f = pool[Math.floor(Math.random() * pool.length)];
+    f.run();
+    showToast('효과 발동: ' + f.name);
   }
 
   // 코드창: Enter로 입력
@@ -183,9 +262,10 @@
       unlimited = !unlimited;
       if (!unlimited) time = GAME_TIME;
       showTime();
-      codeInput.placeholder = unlimited ? '무제한 적용됨' : '무제한 해제됨';
+      showToast(unlimited ? '무제한이 적용되었습니다.' : '무제한이 해제되었습니다.');
     } else if (v) {
-      codeInput.placeholder = '알 수 없는 코드';
+      if (playing) applyRandomEffect();
+      else showToast('효과는 게임 중에만 적용됩니다.');
     }
     codeInput.blur();
   });
@@ -196,6 +276,11 @@
 
   // 잡을 때마다 가로/세로를 따로 랜덤 변경
   function reshapeCat() {
+    if (tiny) {
+      cat.style.width = MIN_SIZE + 'px';
+      cat.style.height = MIN_SIZE + 'px';
+      return;
+    }
     cat.style.width = randSize() + 'px';
     cat.style.height = randSize() + 'px';
   }
@@ -274,15 +359,43 @@
     clones = [];
   }
 
+  // ---------- 총 든 고양이 (즉시 종료) ----------
+  function gunEnding() {
+    playing = false;
+    clearTimeout(moveTimer);
+    clearInterval(clockTimer);
+    clearClones();
+    refusing = false;
+    escaped = false;
+    cat.classList.remove('hit', 'angry');
+    if (gunOk && face.contains(img)) {
+      img.src = GUN_IMG;
+      cat.classList.add('color');
+      cat.style.width = '170px';
+      cat.style.height = '160px';
+    }
+    placeEl(cat);
+    bubble.textContent = '게임을 종료합니다.';
+    cat.classList.add('gun');
+    cat.style.display = 'block';
+    setTimeout(() => {
+      endGame('고양이가 총을 들고 나타났습니다.<br>게임이 즉시 종료되었습니다.');
+    }, 1500);
+  }
+
   function moveCat() {
     if (!playing) return;
+
+    // 0.2% 확률로 총 든 고양이 등장
+    if (Math.random() < GUN_CHANCE) { gunEnding(); return; }
+
     refusing = false;
     cat.classList.remove('hit', 'angry');
     showAngryFace(false);
 
     const cloning = clones.length > 0;
 
-    if (!cloning && !escaped && Math.random() < ESCAPE_CHANCE) {
+    if (!cloning && !flipped && !escaped && Math.random() < ESCAPE_CHANCE) {
       escaped = true;
       escCount++;
       escCountEl.textContent = escCount;
@@ -300,7 +413,7 @@
       }
     }
     cat.style.display = 'block';
-    const delay = Math.max(350, 900 - score * 25) * SLOW;
+    const delay = Math.max(350, 900 - score * 25) * SLOW * speedMul;
     moveTimer = setTimeout(moveCat, delay);
   }
 
@@ -310,8 +423,8 @@
     if (refusing) return; // 거절 중에는 입력 무시
     clearTimeout(moveTimer);
 
-    // 2% 확률로 짜증내며 점수 거절 (4초)
-    if (Math.random() < REFUSE_CHANCE) {
+    // 확률로 짜증내며 점수 거절 (4초)
+    if (Math.random() < refuseChance) {
       refusing = true;
       refCount++;
       refCountEl.textContent = refCount;
@@ -336,11 +449,12 @@
     score = 0; time = GAME_TIME; playing = true;
     escaped = false; escCount = 0; refCount = 0; cloneCount = 0; refusing = false;
     clearClones();
+    resetEffects();
     scoreEl.textContent = 0; showTime();
     escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
-    cat.classList.remove('angry', 'hit');
+    cat.classList.remove('angry', 'hit', 'gun');
     showAngryFace(false);
     overlay.style.display = 'none';
     moveCat();
@@ -353,12 +467,15 @@
     }, 1000);
   }
 
-  function endGame() {
+  function endGame(reason) {
     playing = false;
     clearInterval(clockTimer);
     clearTimeout(moveTimer);
     clearClones();
+    resetEffects();
     cat.style.display = 'none';
+    cat.classList.remove('gun', 'angry', 'hit');
+    showAngryFace(false);
     let extra = '';
     if (score > best) {
       best = score;
@@ -366,7 +483,8 @@
       try { localStorage.setItem('catBest', best); } catch (e) {}
       extra = '<br>최고 기록을 경신하셨네요.';
     }
-    msg.innerHTML = '시간이 종료되었습니다.<br>고양이를 <b>' + score + '</b>번 잡으셨네요.' + extra;
+    msg.innerHTML = (reason || '시간이 종료되었습니다.') +
+      '<br>고양이를 <b>' + score + '</b>번 잡으셨네요.' + extra;
     document.getElementById('start').textContent = '다시 시작';
     overlay.style.display = 'flex';
   }
