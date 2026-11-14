@@ -58,7 +58,7 @@
   #nick { width:150px; background:#fff; color:#000; border:2px solid var(--fg); padding:8px 10px;
     font-size:16px; outline:none; user-select:text; -webkit-user-select:text; }
   #nick:disabled { background:#bbb; color:#555; }
-  #nickInfo { font-size:.85rem; line-height:1.5; min-height:1.3em; }
+  #nickInfo { font-size:1rem; font-weight:700; line-height:1.5; min-height:1.3em; }
   .btns { display:flex; gap:8px; }
   button { background:var(--btn); color:var(--btn-fg); border:0; padding:12px 28px;
     font-size:1.1rem; font-weight:700; cursor:pointer; }
@@ -315,9 +315,15 @@
 
   // ---------- 공용 랭킹 (Firebase REST) ----------
   async function dbGet() {
-    const r = await fetch(DB + '/ranks.json');
-    if (!r.ok) throw new Error('get ' + r.status);
-    return (await r.json()) || {};
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000); // 4초 안에 응답이 없으면 포기
+    try {
+      const r = await fetch(DB + '/ranks.json', { signal: ctrl.signal });
+      if (!r.ok) throw new Error('get ' + r.status);
+      return (await r.json()) || {};
+    } finally {
+      clearTimeout(timer);
+    }
   }
   function toList(obj) {
     return Object.keys(obj)
@@ -666,4 +672,240 @@
     const im = new Image();
     im.src = CAT_IMG;
     im.draggable = false;
-    im.onerror = ()
+    im.onerror = () => { inner.innerHTML = '<span class="emoji">🐱</span>'; };
+    inner.appendChild(im);
+    el.appendChild(inner);
+    // 분신은 1번 클릭하면 사라짐 (점수 없음)
+    el.addEventListener('pointerdown', (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      el.remove();
+      clones = clones.filter(c => c !== el);
+    });
+    field.appendChild(el);
+    return el;
+  }
+
+  function spawnClones() {
+    const n = CLONE_MIN + Math.floor(Math.random() * (CLONE_MAX - CLONE_MIN + 1));
+    for (let i = 0; i < n; i++) {
+      const el = makeClone();
+      placeEl(el);
+      clones.push(el);
+    }
+    cloneCount++;
+    cloneCountEl.textContent = cloneCount;
+  }
+
+  function clearClones() {
+    clones.forEach(c => c.remove());
+    clones = [];
+  }
+
+  // ---------- 신의 손 (염력으로 고양이를 잡고 2점 지급) ----------
+  function handGrab() {
+    handCount++;
+    handCountEl.textContent = handCount;
+    clearClones();
+    refusing = false;
+    escaped = false;
+    held = true;
+    cat.classList.remove('hit', 'angry');
+    showAngryFace(false);
+    placeEl(cat);
+    cat.style.display = 'block';
+    cat.classList.add('held', 'color');
+    score += HAND_SCORE;
+    scoreEl.textContent = score;
+    bubble.textContent = '신의 손이 붙잡았습니다. +' + HAND_SCORE;
+    moveTimer = setTimeout(moveCat, HAND_TIME);
+  }
+
+  // ---------- 총 든 고양이 (총 사진 2초 표시 후 게임 오버) ----------
+  function gunEnding(bubbleText, reason) {
+    playing = false;
+    stopBgm();
+    clearTimeout(moveTimer);
+    clearInterval(clockTimer);
+    clearClones();
+    refusing = false;
+    held = false;
+    escaped = false;
+    gunCount++;
+    gunCountEl.textContent = gunCount;
+    cat.classList.remove('hit', 'angry', 'held');
+    if (gunOk && face.contains(img)) {
+      img.src = GUN_IMG;
+      cat.classList.add('color');
+      cat.style.width = '170px';
+      cat.style.height = '160px';
+    }
+    placeEl(cat);
+    bubble.textContent = bubbleText;
+    cat.classList.add('gun');
+    cat.style.display = 'block';
+    setTimeout(() => { endGame(reason); }, GUN_SHOW_TIME);
+  }
+
+  function moveCat() {
+    if (!playing) return;
+
+    // 0.12% 확률로 총 든 고양이 등장
+    if (Math.random() < GUN_CHANCE) {
+      gunEnding('게임을 종료합니다.', '고양이가 총을 들고 나타났습니다.<br>게임이 즉시 종료되었습니다.');
+      return;
+    }
+
+    // 3.5% 확률로 신의 손 등장
+    if (Math.random() < HAND_CHANCE) {
+      handGrab();
+      return;
+    }
+
+    // 2.5% 확률로 화면 회전 (이미 회전 중이면 제외)
+    if (!flipped && Math.random() < ROTATE_CHANCE) {
+      rotCount++;
+      rotCountEl.textContent = rotCount;
+      rotateScreen();
+      showToast('화면이 회전합니다.');
+    }
+
+    refusing = false;
+    held = false;
+    cat.classList.remove('hit', 'angry', 'held', 'color');
+    showAngryFace(false);
+
+    const cloning = clones.length > 0;
+
+    if (!cloning && !flipped && !escaped && Math.random() < ESCAPE_CHANCE) {
+      escaped = true;
+      escCount++;
+      escCountEl.textContent = escCount;
+    }
+
+    if (escaped) {
+      placeOutside();
+    } else {
+      placeEl(cat);
+      if (cloning) {
+        clones.forEach(placeEl); // 남은 분신도 같이 이동
+      } else if (Math.random() < CLONE_CHANCE) {
+        cat.style.display = 'block';
+        spawnClones();
+      }
+    }
+    cat.style.display = 'block';
+    const delay = Math.max(350, 900 - score * 25) * SLOW * speedMul;
+    moveTimer = setTimeout(moveCat, delay);
+  }
+
+  function catchCat(e) {
+    if (!playing) return;
+    e.preventDefault();
+    if (refusing || held) return; // 거절 중 / 신의 손에 잡힌 중에는 입력 무시
+    clearTimeout(moveTimer);
+
+    // 확률로 짜증내며 점수 거절 (4초)
+    if (Math.random() < refuseChance) {
+      refusing = true;
+      refCount++;
+      refCountEl.textContent = refCount;
+      bubble.textContent = REFUSE_LINES[Math.floor(Math.random() * REFUSE_LINES.length)];
+      cat.classList.add('angry');
+      showAngryFace(true);
+      moveTimer = setTimeout(moveCat, REFUSE_TIME);
+      return;
+    }
+
+    score++;
+    scoreEl.textContent = score;
+    escaped = false; // 잡으면 박스 안으로 복귀
+    clearClones();   // 진짜를 잡으면 분신 모두 사라짐
+    cat.classList.add('hit');
+    reshapeCat();
+    moveTimer = setTimeout(moveCat, 120);
+  }
+  cat.addEventListener('pointerdown', catchCat);
+
+  async function startGame() {
+    if (starting) return;
+    starting = true;
+    // 닉네임 검사 (오류가 나도 시작이 막히지 않게 처리)
+    let ok = true;
+    try { ok = await tryApplyNick(); } catch (e) { ok = true; }
+    starting = false;
+    if (!ok) return;
+    setRankOpen(false);
+
+    score = 0; time = GAME_TIME; playing = true;
+    escaped = false; refusing = false; held = false;
+    usedInf = unlimited;
+    escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0; gunCount = 0;
+    clearClones();
+    resetEffects();
+    scoreEl.textContent = 0; showTime();
+    escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
+    rotCountEl.textContent = 0; handCountEl.textContent = 0; gunCountEl.textContent = 0;
+    cat.style.width = '80px';
+    cat.style.height = '80px';
+    cat.classList.remove('angry', 'hit', 'gun', 'held');
+    showAngryFace(false);
+    playBgm(true);
+    overlay.style.display = 'none';
+    moveCat();
+    clearInterval(clockTimer);
+    clockTimer = setInterval(() => {
+      if (unlimited) return; // 무제한이면 시간이 줄지 않음
+      time--;
+      showTime();
+      if (time <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame(reason) {
+    playing = false;
+    held = false;
+    stopBgm();
+    clearInterval(clockTimer);
+    clearTimeout(moveTimer);
+    clearClones();
+    resetEffects();
+    cat.style.display = 'none';
+    cat.classList.remove('gun', 'angry', 'hit', 'held');
+    showAngryFace(false);
+    let extra = '';
+    if (score > best) {
+      best = score;
+      bestEl.textContent = best;
+      try { localStorage.setItem('catBest', best); } catch (e) {}
+      extra = '<br>최고 기록을 경신하셨네요.';
+    }
+    if (usedInf) extra += '<br>무제한 모드를 사용하여 랭킹에 등록되지 않았습니다.';
+    msg.innerHTML = (reason || '시간이 종료되었습니다.') +
+      '<br>고양이를 <b>' + score + '</b>점 획득하셨네요.' + extra + '<br><span id="rankNote"></span>';
+    document.getElementById('start').textContent = '다시 시작';
+    overlay.style.display = 'flex';
+    updateNickInfo();
+    setRankOpen(true, true);
+
+    // 점수 등록 후 랭킹 갱신
+    (async () => {
+      const note = document.getElementById('rankNote');
+      try {
+        if (!usedInf && score > 0) {
+          await submitScore();
+          const vis = visibleSorted(toList(await dbGet()));
+          const idx = vis.findIndex(e => e.cid === cid);
+          if (note && idx >= 0) note.textContent = '현재 랭킹 ' + (idx + 1) + '위입니다.';
+        }
+      } catch (e) {
+        if (note) note.textContent = '랭킹 서버에 연결하지 못했습니다.';
+      }
+      renderRank();
+    })();
+  }
+
+  document.getElementById('start').addEventListener('click', startGame);
+</script>
+</body>
+</html>
