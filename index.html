@@ -4,15 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>catch cat</title>
+<!-- 오류 안내 (구형 브라우저에서도 동작하도록 ES5로 작성) -->
+<script>
+(function () {
+  function show(msg) {
+    var d = document.getElementById('errBox');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = 'errBox';
+      d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;padding:10px 12px;' +
+        'background:#b00020;color:#fff;font:14px/1.5 sans-serif;white-space:pre-wrap;word-break:break-all';
+      (document.body || document.documentElement).appendChild(d);
+    }
+    d.textContent = msg;
+  }
+  window.onerror = function (m, src, line) {
+    show('오류가 발생했습니다.\n' + m + ' (줄 ' + line + ')\n브라우저: ' + navigator.userAgent);
+  };
+  setTimeout(function () {
+    if (!window.__catReady) {
+      show('게임을 불러오지 못했습니다. 브라우저가 너무 오래되었을 수 있습니다.\n' +
+           'Chrome 또는 Edge 최신 버전으로 열어 주십시오.\n브라우저: ' + navigator.userAgent);
+    }
+  }, 2500);
+})();
+</script>
 <style>
-  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; }
+  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; --ovl:rgba(217,217,217,.9); }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; }
+    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; --ovl:rgba(42,42,42,.9); }
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0 !important; }
   html, body { height:100%; margin:0; }
   body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
-    display:flex; flex-direction:column; align-items:center; padding:16px; user-select:none; }
+    display:flex; flex-direction:column; align-items:center; padding:16px;
+    -webkit-user-select:none; user-select:none; }
   h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
   .bar { display:flex; gap:12px; margin-bottom:10px; font-weight:700; }
   .bar div { background:var(--card); padding:6px 14px; }
@@ -49,19 +75,18 @@
   #cat.held #bubble { display:block; bottom:auto; top:100%; margin:6px 0 0; }
 
   /* 시작/종료 화면 */
-  #overlay { position:absolute; inset:0; display:flex; flex-direction:column; overflow:auto;
-    padding:16px; z-index:10; text-align:center;
-    background:color-mix(in srgb, var(--card) 88%, transparent); }
+  #overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column;
+    overflow:auto; padding:16px; z-index:10; text-align:center; background:var(--ovl); }
   .box { margin:auto; display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
   #overlay p { margin:0; font-size:1.1rem; line-height:1.6; }
   .nick { display:flex; gap:8px; align-items:center; font-weight:700; flex-wrap:wrap; justify-content:center; }
   #nick { width:150px; background:#fff; color:#000; border:2px solid var(--fg); padding:8px 10px;
-    font-size:16px; outline:none; user-select:text; -webkit-user-select:text; }
+    font-size:16px; outline:none; -webkit-user-select:text; user-select:text; }
   #nick:disabled { background:#bbb; color:#555; }
   #nickInfo { font-size:1rem; font-weight:700; line-height:1.5; min-height:1.3em; }
   .btns { display:flex; gap:8px; }
   button { background:var(--btn); color:var(--btn-fg); border:0; padding:12px 28px;
-    font-size:1.1rem; font-weight:700; cursor:pointer; }
+    font-size:1.1rem; font-weight:700; cursor:pointer; touch-action:manipulation; }
   button.sub { background:transparent; color:var(--fg); border:2px solid var(--fg); padding:10px 20px; }
   button.small { padding:8px 14px; font-size:.95rem; }
   button.rep { padding:2px 8px; font-size:.75rem; border-width:1px; }
@@ -87,13 +112,19 @@
   #code .label { background:#fff; color:#000; font-weight:700; font-size:1rem; padding:8px 12px;
     display:flex; align-items:center; }
   #codeInput { width:150px; background:#fff; color:#000; border:0; padding:8px 10px;
-    font-size:16px; outline:none; user-select:text; -webkit-user-select:text; }
-  #toast { position:fixed; right:8px; bottom:78px; z-index:20; max-width:260px; display:none;
+    font-size:16px; outline:none; -webkit-user-select:text; user-select:text; }
+  #toast { position:fixed; right:8px; bottom:78px; z-index:30; max-width:260px; display:none;
     padding:8px 12px; background:var(--card); font-weight:700; font-size:.9rem; line-height:1.5; }
+
+  /* 3초간 시작하지 않으면 나타나는 사진 (코드창 바로 위) */
+  #idle { position:fixed; right:8px; bottom:76px; z-index:15; width:180px; max-width:40vw;
+    display:none; pointer-events:none; }
+  #idle img { width:100%; height:auto; display:block; border:2px solid var(--fg); }
+  #idle .emoji { font-size:3rem; display:block; text-align:center; }
 
   /* 나무 (tree 코드) */
   #tree { display:none; margin-top:12px; }
-  #tree img { width:min(220px,60vw); height:auto; display:block; image-rendering:pixelated;
+  #tree img { width:220px; max-width:60vw; height:auto; display:block; image-rendering:pixelated;
     mix-blend-mode:multiply; }
   @media (prefers-color-scheme: dark) { #tree img { mix-blend-mode:normal; } }
 </style>
@@ -102,13 +133,13 @@
   <div id="quest">
     <div id="questIcon"></div>
     <div id="questText">
-      고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 0.8%)<br>
-      고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 1%)<br>
-      고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 3%)<br>
-      화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 1.5%)<br>
-      신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 2%)<br>
-      고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 2%)<br>
-      고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.2%)<br>
+      고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 1%)<br>
+      고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 2%)<br>
+      고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 5%)<br>
+      화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 2.5%)<br>
+      신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 3.5%)<br>
+      고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
+      고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
       고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)
     </div>
   </div>
@@ -123,7 +154,7 @@
     <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div></div>
     <div id="overlay">
       <div class="box">
-        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
         <div class="nick">
           <label for="nick">닉네임</label>
           <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
@@ -140,6 +171,7 @@
   </div>
   <div id="tree"></div>
 
+  <div id="idle"></div>
   <div id="toast"></div>
   <div id="code">
     <div class="label">code</div>
@@ -155,6 +187,7 @@
   const HAND_IMG = '신의손-removebg-preview.png';
   const TREE_IMG = 'tree.jpg';
   const QUEST_IMG = '퀘스트롤픽셀.jpg';
+  const IDLE_IMG = '7cbde4666ebcf9b984b0203edfb2aa5d.jpg'; // 3초간 시작하지 않으면 나오는 사진
   const BGM_FILE = 'bgm.mp3';   // 노래 파일 (없으면 소리 없이 진행)
   const BGM_VOLUME = 0.4;       // 0~1
 
@@ -162,30 +195,31 @@
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
-  const GAME_TIME = 60;        // 제한 시간(초)
+  const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
+  const GAME_TIME = 45;        // 제한 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
-  const SLOW = 3;            // 이동 간격 배수 (클수록 느려짐)
-  const ESCAPE_CHANCE = 0.008;  // 박스 탈출 확률 0.8%
-  const REFUSE_CHANCE = 0.01;  // 점수 거절 확률 1%
-  const REFUSE_TIME = 2000;    // 점수 거절 지속 시간 (2초)
-  const CLONE_CHANCE = 0.03;   // 분신술 확률 3%
+  const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
+  const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
+  const REFUSE_CHANCE = 0.02;  // 점수 거절 확률 2%
+  const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
+  const CLONE_CHANCE = 0.05;   // 분신술 확률 5%
   const CLONE_MIN = 2, CLONE_MAX = 4; // 분신 수 (진짜 제외)
-  const ROTATE_CHANCE = 0.015; // 화면 회전 확률 1.5% (이동 1회당)
-  const HAND_CHANCE = 0.02;   // 신의 손 확률 2% (이동 1회당)
-  const HAND_TIME = 1200;      // 신의 손 지속 시간 (1.2초)
-  const HAND_SCORE = 3;        // 신의 손이 주는 점수
-  const SLEEP_CHANCE = 0.02;   // 졸린 고양이 확률 2% (이동 1회당)
-  const SLEEP_TIME = 2550;     // 자는 시간 (2.55초)
+  const ROTATE_CHANCE = 0.025; // 화면 회전 확률 2.5% (이동 1회당)
+  const HAND_CHANCE = 0.035;   // 신의 손 확률 3.5% (이동 1회당)
+  const HAND_TIME = 2000;      // 신의 손 지속 시간 (2초)
+  const HAND_SCORE = 2;        // 신의 손이 주는 점수
+  const SLEEP_CHANCE = 0.03;   // 졸린 고양이 확률 3% (이동 1회당)
+  const SLEEP_TIME = 3000;     // 자는 시간 (3초)
   const SLEEP_PENALTY = 2;     // 자는 고양이를 깨웠을 때 깎이는 점수
-  const WAKE_ANGRY_TIME = 1000;// 깨어나서 화내는 시간 (1초)
+  const WAKE_ANGRY_TIME = 1500;// 깨어나서 화내는 시간 (1.5초)
   const GUN_CHANCE = 0.0012;   // 총 든 고양이 확률 0.12% (이동 1회당)
-  const FAKE_GUN_CHANCE = 0.002; // 가짜 총 확률 0.2% (이동 1회당)
+  const FAKE_GUN_CHANCE = 0.005; // 가짜 총 확률 0.5% (이동 1회당)
   const GUN_SHOW_TIME = 2000;  // 총 든 사진 표시 시간 (2초)
   const FAKE_REVEAL_TIME = 1500; // 가짜 총 정체가 드러난 뒤 머무는 시간 (1.5초)
-  const EFFECT_TIME = 5000;    // 억까 효과 지속 시간 (5초)
+  const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
-  const RANK_MAX = 12;         // 랭킹 표시 인원
-  const NICK_MAX = 15;         // 닉네임 최대 글자 수
+  const RANK_MAX = 10;         // 랭킹 표시 인원
+  const NICK_MAX = 10;         // 닉네임 최대 글자 수
   const NICK_CHANGES_MAX = 3;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
@@ -228,6 +262,7 @@
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
   const toast = document.getElementById('toast');
+  const idleBox = document.getElementById('idle');
   const treeBox = document.getElementById('tree');
   const nickInput = document.getElementById('nick');
   const nickSave = document.getElementById('nickSave');
@@ -235,17 +270,23 @@
   const rankBtn = document.getElementById('rankBtn');
   const rankEl = document.getElementById('rank');
 
+  // 시작 버튼을 가장 먼저 연결 (뒤쪽 코드에 문제가 있어도 눌리도록)
+  document.getElementById('start').addEventListener('click', function () { startGame(); });
+
   // ---------- 음악 ----------
-  const bgm = new Audio(BGM_FILE);
-  bgm.loop = true;
-  bgm.volume = BGM_VOLUME;
+  let bgm = null;
+  try {
+    bgm = new Audio(BGM_FILE);
+    bgm.loop = true;
+    bgm.volume = BGM_VOLUME;
+  } catch (e) { bgm = null; }
   let muted = false;
   function playBgm(reset) {
-    if (muted) return;
+    if (muted || !bgm) return;
     try { if (reset) bgm.currentTime = 0; } catch (e) {}
-    bgm.play().catch(() => {});
+    try { const p = bgm.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
   }
-  function stopBgm() { bgm.pause(); }
+  function stopBgm() { try { if (bgm) bgm.pause(); } catch (e) {} }
 
   // 고양이 사진 넣기 (실패하면 이모지)
   const img = new Image();
@@ -270,6 +311,14 @@
   timg.draggable = false;
   timg.onerror = () => { treeBox.innerHTML = '<span style="font-size:4rem">🌳</span>'; };
   treeBox.appendChild(timg);
+
+  // 대기 사진 넣기 (실패하면 이모지)
+  const iimg = new Image();
+  iimg.src = IDLE_IMG;
+  iimg.alt = '충전 중인 고양이';
+  iimg.draggable = false;
+  iimg.onerror = () => { idleBox.innerHTML = '<span class="emoji">🔌</span>'; };
+  idleBox.appendChild(iimg);
 
   // 화난 / 총 든 / 자는 사진 미리 불러오기 (실패하면 평소 사진 유지)
   let angryOk = true, gunOk = true, sleepOk = true;
@@ -313,22 +362,37 @@
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
   let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
   let sleepCount = 0, fakeCount = 0, gunCount = 0;
-  let refusing = false, held = false, sleeping = false, starting = false;
+  let refusing = false, held = false, sleeping = false;
   let unlimited = false, usedInf = false;
   let clones = [];
   // 억까 효과 상태
   let speedMul = 1, tiny = false, refuseChance = REFUSE_CHANCE, flipped = false;
   const effectTimers = {};
   let toastTimer = null;
+  let idleTimer = null;
   let best = 0;
   try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
   bestEl.textContent = best;
+
+  // ---------- 3초간 시작하지 않으면 사진 표시 ----------
+  function startIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (!playing) idleBox.style.display = 'block';
+    }, IDLE_TIME);
+  }
+  function stopIdle() {
+    clearTimeout(idleTimer);
+    idleBox.style.display = 'none';
+  }
 
   // ---------- 기기 식별 / 신고 기록 (이 브라우저) ----------
   let cid = null;
   try { cid = localStorage.getItem('catCid'); } catch (e) {}
   if (!cid) {
-    const raw = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '' + Math.random());
+    let raw = '';
+    try { raw = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ''; } catch (e) {}
+    if (!raw) raw = Date.now() + '' + Math.random();
     cid = raw.replace(/[^a-zA-Z0-9]/g, '');
     try { localStorage.setItem('catCid', cid); } catch (e) {}
   }
@@ -358,10 +422,16 @@
       .sort((a, b) => b.score - a.score || (a.t || 0) - (b.t || 0));
   }
 
-  // 점수 등록: 한 사람당 최고 점수 하나만 유지
+  // 점수 등록: 한 사람당 최고 점수 하나만 유지.
+  // 이미 다른 사람이 쓰는 닉네임이면 익명으로 등록하고 true를 돌려줌
   async function submitScore() {
-    const name = nickSet ? nick : '익명';
+    let name = nickSet ? nick : '익명';
     const list = toList(await dbGet());
+    let dup = false;
+    if (nickSet && list.some(e => e.name.toLowerCase() === name.toLowerCase() && e.cid !== cid)) {
+      name = '익명';
+      dup = true;
+    }
     const mine = list.find(e => e.cid === cid);
     if (!mine) {
       const r = await fetch(DB + '/ranks.json', {
@@ -369,7 +439,7 @@
         body: JSON.stringify({ name: name, score: score, cid: cid, t: Date.now() })
       });
       if (!r.ok) throw new Error('post');
-      return;
+      return dup;
     }
     const patch = {};
     if (score > mine.score) { patch.score = score; patch.t = Date.now(); }
@@ -378,6 +448,7 @@
       const r = await fetch(DB + '/ranks/' + mine.key + '.json', { method: 'PATCH', body: JSON.stringify(patch) });
       if (!r.ok) throw new Error('patch');
     }
+    return dup;
   }
 
   async function reportEntry(key) {
@@ -472,11 +543,26 @@
     const n = normalizeNick(s);
     return BAD_WORDS.some(w => n.includes(w));
   }
+  // 형식 / 금지어 검사 (서버 없이). 문제가 없으면 빈 문자열
+  function checkNickLocal(name) {
+    if (!/^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]+$/.test(name)) return '닉네임은 한글, 영문, 숫자만 사용할 수 있습니다.';
+    if (hasBadWord(name)) return '사용할 수 없는 닉네임입니다. (욕설 또는 부적절한 표현)';
+    return '';
+  }
   async function isDuplicateNick(name) {
     try {
       const low = name.toLowerCase();
       return toList(await dbGet()).some(e => e.name.toLowerCase() === low && e.cid !== cid);
     } catch (e) { return false; } // 서버에 연결되지 않으면 검사하지 않음
+  }
+  function applyNick(name) {
+    if (nickSet) nickChanges++;
+    nick = name;
+    nickSet = true;
+    try {
+      localStorage.setItem('catNick', nick);
+      localStorage.setItem('catNickChanges', String(nickChanges));
+    } catch (e) {}
   }
 
   function updateNickInfo(extra) {
@@ -493,44 +579,31 @@
     nickSave.disabled = locked;
   }
 
-  // 닉네임 적용 시도. 성공(또는 변경 없음)이면 true
-  async function tryApplyNick() {
+  // 저장 버튼: 서버에서 동명도 확인 (서버가 응답하지 않으면 생략)
+  async function saveNickClick() {
     const name = nickInput.value.trim().slice(0, NICK_MAX);
     if (!name) {
       if (nickSet) nickInput.value = nick;
-      return true;
+      updateNickInfo('닉네임을 입력해 주십시오.');
+      return;
     }
-    if (nickSet && name === nick) return true;
+    if (nickSet && name === nick) { updateNickInfo('현재 사용 중인 닉네임입니다.'); return; }
     if (nickSet && nickChanges >= NICK_CHANGES_MAX) {
       nickInput.value = nick;
       updateNickInfo('변경 횟수를 모두 사용하였습니다.');
-      return false;
+      return;
     }
-    if (!/^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]+$/.test(name)) {
-      updateNickInfo('닉네임은 한글, 영문, 숫자만 사용할 수 있습니다.');
-      return false;
-    }
-    if (hasBadWord(name)) {
-      updateNickInfo('사용할 수 없는 닉네임입니다. (욕설 또는 부적절한 표현)');
-      return false;
-    }
+    const bad = checkNickLocal(name);
+    if (bad) { updateNickInfo(bad); return; }
     nickInfo.textContent = '확인 중...';
-    if (await isDuplicateNick(name)) {
-      updateNickInfo('이미 사용 중인 닉네임입니다.');
-      return false;
-    }
-    if (nickSet) nickChanges++;
-    nick = name;
-    nickSet = true;
-    try {
-      localStorage.setItem('catNick', nick);
-      localStorage.setItem('catNickChanges', String(nickChanges));
-    } catch (e) {}
+    let dup = false;
+    try { dup = await isDuplicateNick(name); } catch (e) {}
+    if (dup) { updateNickInfo('이미 사용 중인 닉네임입니다.'); return; }
+    applyNick(name);
     updateNickInfo('닉네임이 저장되었습니다.');
-    return true;
   }
-  nickSave.addEventListener('click', tryApplyNick);
-  nickInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryApplyNick(); });
+  nickSave.addEventListener('click', saveNickClick);
+  nickInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNickClick(); });
   updateNickInfo();
 
   function showTime() {
@@ -541,7 +614,7 @@
     toast.textContent = text;
     toast.style.display = 'block';
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
   }
 
   // 일정 시간 동안만 켜지는 효과 (같은 효과를 다시 받으면 시간 갱신)
@@ -624,7 +697,7 @@
     } else if (v === '의지') {
       if (playing) {
         showToast('고양이에게 의지를 얻었습니다.');
-        gunEnding('의지를 얻었습니다.', '고양이는 의지로 총을 얻었습니다.<br>게임이 종료되었습니다.');
+        gunEnding('의지를 얻었습니다.', '고양이에게 의지를 얻었습니다.<br>게임이 종료되었습니다.');
       } else {
         showToast('의지는 게임 중에만 사용할 수 있습니다.');
       }
@@ -923,14 +996,27 @@
   }
   cat.addEventListener('pointerdown', catchCat);
 
-  async function startGame() {
-    if (starting) return;
-    starting = true;
-    // 닉네임 검사 (오류가 나도 시작이 막히지 않게 처리)
-    let ok = true;
-    try { ok = await tryApplyNick(); } catch (e) { ok = true; }
-    starting = false;
-    if (!ok) return;
+  // 게임 시작: 닉네임에 문제가 있어도 시작은 막지 않음
+  function startGame() {
+    if (playing) return;
+    stopIdle(); // 시작을 눌렀으므로 대기 사진 숨김
+
+    const name = nickInput.value.trim().slice(0, NICK_MAX);
+    if (name && !(nickSet && name === nick)) {
+      if (nickSet && nickChanges >= NICK_CHANGES_MAX) {
+        nickInput.value = nick;
+        showToast('변경 횟수를 모두 사용하여 기존 닉네임으로 진행합니다.');
+      } else {
+        const bad = checkNickLocal(name);
+        if (bad) {
+          nickInput.value = nickSet ? nick : '';
+          showToast(bad + ' ' + (nickSet ? '기존 닉네임' : '익명') + '으로 진행합니다.');
+        } else {
+          applyNick(name);
+        }
+      }
+    }
+    updateNickInfo();
     setRankOpen(false);
 
     score = 0; time = GAME_TIME; playing = true;
@@ -986,16 +1072,20 @@
     overlay.style.display = 'flex';
     updateNickInfo();
     setRankOpen(true, true);
+    startIdleTimer(); // 시작 화면으로 돌아왔으므로 대기 시간 측정
 
     // 점수 등록 후 랭킹 갱신
     (async () => {
       const note = document.getElementById('rankNote');
       try {
         if (!usedInf && score > 0) {
-          await submitScore();
+          const dup = await submitScore();
           const vis = visibleSorted(toList(await dbGet()));
           const idx = vis.findIndex(e => e.cid === cid);
-          if (note && idx >= 0) note.textContent = '현재 랭킹 ' + (idx + 1) + '위입니다.';
+          let t = '';
+          if (idx >= 0) t = '현재 랭킹 ' + (idx + 1) + '위입니다.';
+          if (dup) t += ' 이미 사용 중인 닉네임이라 익명으로 등록되었습니다.';
+          if (note) note.textContent = t;
         }
       } catch (e) {
         if (note) note.textContent = '랭킹 서버에 연결하지 못했습니다.';
@@ -1004,7 +1094,8 @@
     })();
   }
 
-  document.getElementById('start').addEventListener('click', startGame);
+  startIdleTimer(); // 페이지를 열자마자 대기 시간 측정 시작
+  window.__catReady = true; // 여기까지 오류 없이 실행되었다는 표시
 </script>
 </body>
 </html>
