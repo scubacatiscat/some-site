@@ -71,6 +71,7 @@
       고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 1%)<br>
       고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 2%)<br>
       고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 5%)
+     고양이가 총들 횟수: <span id="cloneCount">0</span>번 (확률 0.12%)
     </div>
   </div>
 
@@ -109,7 +110,7 @@
   const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
   const CLONE_CHANCE = 0.05;   // 분신술 확률 5%
   const CLONE_MIN = 2, CLONE_MAX = 4; // 분신 수 (진짜 제외)
-  const GUN_CHANCE = 0.002;    // 총 든 고양이 확률 0.2% (이동 1회당)
+  const GUN_CHANCE = 0.0012;    // 총 든 고양이 확률 0.12% (이동 1회당)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
   const REFUSE_LINES = [
