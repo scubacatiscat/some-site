@@ -45,7 +45,7 @@
   button:active { transform:scale(.96); }
 
   /* 퀘스트 두루마리 */
-  #quest { position:fixed; top:8px; left:8px; z-index:20; width:250px; }
+  #quest { position:fixed; top:8px; left:8px; z-index:20; width:260px; }
   #questIcon { width:44px; height:44px; cursor:pointer; display:block; }
   #questIcon img { width:100%; height:100%; object-fit:contain; display:block;
     image-rendering:pixelated; pointer-events:none; }
@@ -70,8 +70,9 @@
     <div id="questText">
       고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 1%)<br>
       고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 2%)<br>
-      고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 5%)
-     고양이가 총들 횟수: <span id="cloneCount">0</span>번 (확률 0.12%)
+      고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 5%)<br>
+      화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 2.5%)<br>
+      고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)
     </div>
   </div>
 
@@ -110,7 +111,9 @@
   const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
   const CLONE_CHANCE = 0.05;   // 분신술 확률 5%
   const CLONE_MIN = 2, CLONE_MAX = 4; // 분신 수 (진짜 제외)
-  const GUN_CHANCE = 0.0012;    // 총 든 고양이 확률 0.12% (이동 1회당)
+  const ROTATE_CHANCE = 0.025; // 화면 회전 확률 2.5% (이동 1회당)
+  const GUN_CHANCE = 0.0012;   // 총 든 고양이 확률 0.12% (이동 1회당)
+  const GUN_SHOW_TIME = 2000;  // 총 든 사진 표시 시간 (2초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
   const REFUSE_LINES = [
@@ -135,6 +138,8 @@
   const escCountEl = document.getElementById('escCount');
   const refCountEl = document.getElementById('refCount');
   const cloneCountEl = document.getElementById('cloneCount');
+  const rotCountEl = document.getElementById('rotCount');
+  const gunCountEl = document.getElementById('gunCount');
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
   const toast = document.getElementById('toast');
@@ -177,7 +182,8 @@
   });
 
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
-  let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, refusing = false;
+  let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, gunCount = 0;
+  let refusing = false;
   let unlimited = false;
   let clones = [];
   // 억까 효과 상태
@@ -213,6 +219,13 @@
     field.classList.remove('ghost', 'flip');
   }
 
+  // 화면 회전 (코드창 효과와 자동 발동 공용)
+  function rotateScreen() {
+    escaped = false;
+    timed('flip', () => { flipped = true; field.classList.add('flip'); },
+                  () => { flipped = false; field.classList.remove('flip'); }, EFFECT_TIME);
+  }
+
   // 억까 효과 목록
   const EFFECTS = [
     { name: '시간이 5초 감소했습니다.', limitedOnly: true,
@@ -222,11 +235,7 @@
     { name: '6초간 고양이 속도가 증가합니다.',
       run() { timed('speed', () => { speedMul = 0.25; }, () => { speedMul = 1; }, EFFECT_TIME); } },
     { name: '6초간 화면이 회전합니다.',
-      run() {
-        escaped = false;
-        timed('flip', () => { flipped = true; field.classList.add('flip'); },
-                      () => { flipped = false; field.classList.remove('flip'); }, EFFECT_TIME);
-      } },
+      run() { rotateScreen(); } },
     { name: '6초간 고양이 크기가 최소화됩니다.',
       run() {
         timed('tiny', () => { tiny = true; cat.style.width = MIN_SIZE + 'px'; cat.style.height = MIN_SIZE + 'px'; },
@@ -264,6 +273,13 @@
       if (!unlimited) time = GAME_TIME;
       showTime();
       showToast(unlimited ? '무제한이 적용되었습니다.' : '무제한이 해제되었습니다.');
+    } else if (v === '의지') {
+      if (playing) {
+        showToast('고양이에게 의지를 얻었습니다.');
+        gunEnding('의지를 얻었습니다.', '고양이에게 의지를 얻었습니다.<br>게임이 종료되었습니다.');
+      } else {
+        showToast('의지는 게임 중에만 사용할 수 있습니다.');
+      }
     } else if (v) {
       if (playing) applyRandomEffect();
       else showToast('효과는 게임 중에만 적용됩니다.');
@@ -360,14 +376,16 @@
     clones = [];
   }
 
-  // ---------- 총 든 고양이 (즉시 종료) ----------
-  function gunEnding() {
+  // ---------- 총 든 고양이 (총 사진 2초 표시 후 게임 오버) ----------
+  function gunEnding(bubbleText, reason) {
     playing = false;
     clearTimeout(moveTimer);
     clearInterval(clockTimer);
     clearClones();
     refusing = false;
     escaped = false;
+    gunCount++;
+    gunCountEl.textContent = gunCount;
     cat.classList.remove('hit', 'angry');
     if (gunOk && face.contains(img)) {
       img.src = GUN_IMG;
@@ -376,19 +394,28 @@
       cat.style.height = '160px';
     }
     placeEl(cat);
-    bubble.textContent = '게임을 종료합니다.';
+    bubble.textContent = bubbleText;
     cat.classList.add('gun');
     cat.style.display = 'block';
-    setTimeout(() => {
-      endGame('고양이가 총을 들고 나타났습니다.<br>게임이 즉시 종료되었습니다.');
-    }, 1500);
+    setTimeout(() => { endGame(reason); }, GUN_SHOW_TIME);
   }
 
   function moveCat() {
     if (!playing) return;
 
-    // 0.2% 확률로 총 든 고양이 등장
-    if (Math.random() < GUN_CHANCE) { gunEnding(); return; }
+    // 0.12% 확률로 총 든 고양이 등장
+    if (Math.random() < GUN_CHANCE) {
+      gunEnding('게임을 종료합니다.', '고양이가 총을 들고 나타났습니다.<br>게임이 즉시 종료되었습니다.');
+      return;
+    }
+
+    // 2.5% 확률로 화면 회전 (이미 회전 중이면 제외)
+    if (!flipped && Math.random() < ROTATE_CHANCE) {
+      rotCount++;
+      rotCountEl.textContent = rotCount;
+      rotateScreen();
+      showToast('화면이 회전합니다.');
+    }
 
     refusing = false;
     cat.classList.remove('hit', 'angry');
@@ -448,11 +475,13 @@
 
   function startGame() {
     score = 0; time = GAME_TIME; playing = true;
-    escaped = false; escCount = 0; refCount = 0; cloneCount = 0; refusing = false;
+    escaped = false; refusing = false;
+    escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; gunCount = 0;
     clearClones();
     resetEffects();
     scoreEl.textContent = 0; showTime();
     escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
+    rotCountEl.textContent = 0; gunCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
     cat.classList.remove('angry', 'hit', 'gun');
