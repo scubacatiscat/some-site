@@ -123,7 +123,7 @@
     <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div></div>
     <div id="overlay">
       <div class="box">
-        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
         <div class="nick">
           <label for="nick">닉네임</label>
           <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
@@ -624,7 +624,7 @@
     } else if (v === '의지') {
       if (playing) {
         showToast('고양이에게 의지를 얻었습니다.');
-        gunEnding('의지를 얻었습니다.', '고양이에게 의지를 얻었습니다.<br>게임이 종료되었습니다.');
+        gunEnding('의지를 얻었습니다.', '고양이는 의지로 총을 얻었습니다.<br>게임이 종료되었습니다.');
       } else {
         showToast('의지는 게임 중에만 사용할 수 있습니다.');
       }
