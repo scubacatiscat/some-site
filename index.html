@@ -1,4 +1,4 @@
-d<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -61,7 +61,15 @@ d<!DOCTYPE html>
   #bubble { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:6px;
     display:none; white-space:nowrap; background:var(--bg); color:var(--fg); border:2px solid var(--fg);
     padding:4px 10px; font-size:.85rem; font-weight:700; pointer-events:none; }
-  #cat.angry #bubble, #cat.gun #bubble { display:block; }
+  #cat.angry #bubble, #cat.gun #bubble, #cat.cake #bubble { display:block; }
+
+  /* 보스 체력 / 케이크 */
+  #hp { position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:4px; display:none;
+    white-space:nowrap; font-weight:900; font-size:1.1rem; color:#d00; pointer-events:none; }
+  #cat.boss #hp { display:block; }
+  #cake { position:absolute; left:50%; top:55%; transform:translateX(-50%); font-size:2rem; line-height:1;
+    display:none; pointer-events:none; }
+  #cat.cake #cake { display:block; }
 
   /* 신의 손 */
   #hand { position:absolute; left:50%; bottom:100%; width:110px; height:90px; margin-bottom:-18px;
@@ -113,7 +121,7 @@ d<!DOCTYPE html>
     display:flex; align-items:center; }
   #codeInput { width:150px; background:#fff; color:#000; border:0; padding:8px 10px;
     font-size:16px; outline:none; -webkit-user-select:text; user-select:text; }
-  #toast { position:fixed; right:8px; bottom:78px; z-index:30; max-width:260px; display:none;
+  #toast { position:fixed; right:8px; bottom:78px; z-index:60; max-width:260px; display:none;
     padding:8px 12px; background:var(--card); font-weight:700; font-size:.9rem; line-height:1.5; }
 
   /* 3초간 시작하지 않으면 나타나는 사진 (코드창 바로 위) */
@@ -127,6 +135,45 @@ d<!DOCTYPE html>
   #tree img { width:220px; max-width:60vw; height:auto; display:block; image-rendering:pixelated;
     mix-blend-mode:multiply; }
   @media (prefers-color-scheme: dark) { #tree img { mix-blend-mode:normal; } }
+
+  /* 캣굴 (catgle 코드) - 구글 첫 화면처럼. 다크 모드에서도 흰 배경 */
+  #catgle { position:fixed; top:0; left:0; right:0; bottom:0; z-index:50; display:none; overflow:auto;
+    background:#fff; color:#202124; font-family:Arial,"Malgun Gothic",sans-serif;
+    -webkit-user-select:text; user-select:text; }
+  #cgClose { position:absolute; top:10px; right:14px; z-index:2; background:transparent; color:#5f6368;
+    border:0; padding:6px 10px; font-size:1.2rem; font-weight:400; }
+  #cgPage { min-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:20px 16px 80px; }
+  #cgHead { display:flex; flex-direction:column; align-items:center; gap:22px; width:100%; max-width:584px; }
+  #cgLogoBox img { width:272px; max-width:70vw; height:auto; display:block; }
+  #cgLogoBox .textlogo { font-size:3.4rem; font-weight:900; font-family:Georgia,serif; }
+  #cgBar { display:flex; align-items:center; gap:10px; width:100%; height:46px; padding:0 18px;
+    background:#fff; border:1px solid #dfe1e5; box-shadow:0 1px 6px rgba(32,33,36,.18);
+    border-radius:24px !important; }
+  #cgBar:focus-within { box-shadow:0 1px 6px rgba(32,33,36,.32); }
+  #cgBar .plus { font-size:1.4rem; line-height:1; color:#202124; }
+  #cgInput { flex:1; min-width:0; height:100%; padding:0; border:0; outline:none; background:transparent;
+    color:#202124; font-size:16px; }
+  #cgBtns { display:flex; gap:12px; margin-top:26px; }
+  .cgb { background:#f8f9fa; color:#3c4043; border:1px solid #f8f9fa; border-radius:4px !important;
+    padding:0 16px; height:36px; font-size:14px; font-weight:400; }
+  .cgb:hover { border-color:#dadce0; box-shadow:0 1px 1px rgba(0,0,0,.1); }
+  #cgResult { width:100%; max-width:900px; margin-top:22px; text-align:left; font-size:14px; line-height:1.58; }
+  #cgResult:empty { display:none; }
+  #cgResult .stat { color:#70757a; font-size:.85rem; margin-bottom:18px; }
+  #cgResult .item { max-width:652px; margin-bottom:26px; }
+  #cgResult .rurl { color:#202124; font-size:.85rem; }
+  #cgResult .rtitle { color:#1a0dab; font-size:1.25rem; line-height:1.3; margin:2px 0 3px; }
+  #cgResult .rdesc { color:#4d5156; }
+  #cgResult b { background:#fff3b0; color:#202124; padding:0 3px; }
+  #cgResult .nores { max-width:652px; color:#202124; }
+  #cgResult .nores ul { margin:10px 0 0 20px; padding:0; color:#4d5156; }
+  /* 검색 결과 화면: 로고가 왼쪽 위로 작아지고 검색창이 위로 올라감 */
+  #cgPage.results { justify-content:flex-start; padding-top:22px; }
+  #cgPage.results #cgHead { flex-direction:row; flex-wrap:wrap; align-items:center; gap:14px 24px; max-width:900px; }
+  #cgPage.results #cgLogoBox img { width:100px; }
+  #cgPage.results #cgBar { flex:1 1 260px; max-width:584px; width:auto; }
+  #cgPage.results #cgBtns { display:none; }
 </style>
 </head>
 <body>
@@ -140,21 +187,22 @@ d<!DOCTYPE html>
       신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 3.5%)<br>
       고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
       고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
+      보스 고양이가 나타난 횟수: <span id="bossCount">0</span>번 (확률 0.1%)<br>
       고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)
     </div>
   </div>
 
   <h1>catch cat</h1>
   <div class="bar">
-    <div>time <span id="time">60</span></div>
+    <div>time <span id="time">45</span></div>
     <div>score <span id="score">0</span></div>
     <div>best <span id="best">0</span></div>
   </div>
   <div id="field">
-    <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div></div>
+    <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="hp"></div><div id="cake">🎂</div></div>
     <div id="overlay">
       <div class="box">
-        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
         <div class="nick">
           <label for="nick">닉네임</label>
           <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
@@ -171,6 +219,24 @@ d<!DOCTYPE html>
   </div>
   <div id="tree"></div>
 
+  <div id="catgle">
+    <button id="cgClose" aria-label="닫기">✕</button>
+    <div id="cgPage" class="home">
+      <div id="cgHead">
+        <div id="cgLogoBox"></div>
+        <div id="cgBar">
+          <span class="plus">+</span>
+          <input id="cgInput" type="text" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div id="cgBtns">
+        <button id="cgBtn" class="cgb">Catgle 검색</button>
+        <button id="cgLucky" class="cgb">I'm Feeling Lucky</button>
+      </div>
+      <div id="cgResult"></div>
+    </div>
+  </div>
+
   <div id="idle"></div>
   <div id="toast"></div>
   <div id="code">
@@ -184,19 +250,47 @@ d<!DOCTYPE html>
   const ANGRY_IMG = '22.gif';
   const GUN_IMG = '총든_21.png';
   const SLEEP_IMG = 'zzz캣-removebg-preview.png';
+  const BOSS_IMG = '3f4e610e8ee350344466954c75f708fb-removebg-preview.png';
   const HAND_IMG = '신의손-removebg-preview.png';
   const TREE_IMG = 'tree.jpg';
   const QUEST_IMG = '퀘스트롤픽셀.jpg';
   const IDLE_IMG = '7cbde4666ebcf9b984b0203edfb2aa5d.jpg'; // 3초간 시작하지 않으면 나오는 사진
+  const CATGLE_IMG = 'catgle.png';                         // 캣굴 로고
   const BGM_FILE = 'bgm.mp3';   // 노래 파일 (없으면 소리 없이 진행)
   const BGM_VOLUME = 0.4;       // 0~1
+
+  // 캣굴 검색어 → 비밀 코드. 한 덩어리씩 추가하면 검색어가 늘어남 (검색어는 소문자로)
+  const SEARCH_DB = {
+    'cat': {
+      title: '고양이에게 케이크를 선물하는 방법',
+      url: 'catgle.cat › secret › cake',
+      desc: '검색어 "cat"과 관련된 비밀 코드를 찾았습니다.',
+      code: 'catke',
+      tip: '게임 중에 코드창에 입력해 보십시오.'
+    }
+  };
+  // 검색 결과에 같이 나오는 가짜 결과 (비밀 코드 결과 아래에 붙음)
+  const FILLERS = [
+    { title: '캣피디아 - 고양이 백과사전', url: 'catpedia.cat › wiki › cat',
+      desc: '고양이의 습성, 품종, 행동에 대한 설명을 모아 둔 백과사전입니다.' },
+    { title: '집사를 위한 고양이 사료 가이드', url: 'catfood.cat › guide',
+      desc: '연령과 체중에 맞는 사료를 고르는 방법을 정리했습니다.' }
+  ];
+  // I'm Feeling Lucky 버튼 메시지
+  const LUCKY_LINES = [
+    '오늘은 고양이를 잡기 좋은 날입니다.',
+    '고양이는 지금 낮잠을 자고 있습니다.',
+    '행운의 숫자는 7입니다.',
+    '행운의 검색어는 영어 세 글자입니다.',
+    '오늘의 운세: 총알을 조심하십시오.'
+  ];
 
   // 공용 랭킹 서버 (Firebase Realtime Database)
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
   const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
-  const GAME_TIME = 60;        // 제한 시간(초)
+  const GAME_TIME = 45;        // 제한 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
@@ -216,9 +310,17 @@ d<!DOCTYPE html>
   const FAKE_GUN_CHANCE = 0.005; // 가짜 총 확률 0.5% (이동 1회당)
   const GUN_SHOW_TIME = 2000;  // 총 든 사진 표시 시간 (2초)
   const FAKE_REVEAL_TIME = 1500; // 가짜 총 정체가 드러난 뒤 머무는 시간 (1.5초)
+  const BOSS_CHANCE = 0.001;   // 보스 고양이 확률 0.1% (이동 1회당)
+  const BOSS_HP = 5;           // 보스 체력
+  const BOSS_SPEED = 6;        // 보스 빠르기 (일반 고양이의 6배)
+  const BOSS_DELAY = Math.round(900 * SLOW / BOSS_SPEED); // 보스 이동 간격(ms), 약 0.38초
+  const BOSS_SCORE = 5;        // 보스를 쓰러뜨리면 얻는 점수
+  const BOSS_W = 150, BOSS_H = 108; // 보스 크기
+  const CAKE_SCORE = 3;        // 케이크 고양이를 눌렀을 때 점수
+  const CAKE_TIME = 4000;      // 케이크 고양이가 머무는 시간 (4초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
-  const RANK_MAX = 20;         // 랭킹 표시 인원
+  const RANK_MAX = 10;         // 랭킹 표시 인원
   const NICK_MAX = 10;         // 닉네임 최대 글자 수
   const NICK_CHANGES_MAX = 3;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
   const REFUSE_LINES = [
@@ -243,6 +345,8 @@ d<!DOCTYPE html>
   const face = document.getElementById('face');
   const bubble = document.getElementById('bubble');
   const handBox = document.getElementById('hand');
+  const hpEl = document.getElementById('hp');
+  const cakeEl = document.getElementById('cake');
   const overlay = document.getElementById('overlay');
   const msg = document.getElementById('msg');
   const scoreEl = document.getElementById('score');
@@ -258,6 +362,7 @@ d<!DOCTYPE html>
   const handCountEl = document.getElementById('handCount');
   const sleepCountEl = document.getElementById('sleepCount');
   const fakeCountEl = document.getElementById('fakeCount');
+  const bossCountEl = document.getElementById('bossCount');
   const gunCountEl = document.getElementById('gunCount');
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
@@ -269,6 +374,14 @@ d<!DOCTYPE html>
   const nickInfo = document.getElementById('nickInfo');
   const rankBtn = document.getElementById('rankBtn');
   const rankEl = document.getElementById('rank');
+  const catgleEl = document.getElementById('catgle');
+  const cgPage = document.getElementById('cgPage');
+  const cgLogoBox = document.getElementById('cgLogoBox');
+  const cgInput = document.getElementById('cgInput');
+  const cgBtn = document.getElementById('cgBtn');
+  const cgLucky = document.getElementById('cgLucky');
+  const cgResult = document.getElementById('cgResult');
+  const cgClose = document.getElementById('cgClose');
 
   // 시작 버튼을 가장 먼저 연결 (뒤쪽 코드에 문제가 있어도 눌리도록)
   document.getElementById('start').addEventListener('click', function () { startGame(); });
@@ -320,8 +433,20 @@ d<!DOCTYPE html>
   iimg.onerror = () => { idleBox.innerHTML = '<span class="emoji">🔌</span>'; };
   idleBox.appendChild(iimg);
 
-  // 화난 / 총 든 / 자는 사진 미리 불러오기 (실패하면 평소 사진 유지)
-  let angryOk = true, gunOk = true, sleepOk = true;
+  // 캣굴 로고 넣기 (실패하면 글자 로고)
+  const limg = new Image();
+  limg.src = CATGLE_IMG;
+  limg.alt = 'Catgle';
+  limg.draggable = false;
+  limg.onerror = () => {
+    cgLogoBox.innerHTML = '<span class="textlogo"><span style="color:#4285F4">C</span><span style="color:#EA4335">a</span>' +
+      '<span style="color:#FBBC05">t</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span>' +
+      '<span style="color:#EA4335">e</span></span>';
+  };
+  cgLogoBox.appendChild(limg);
+
+  // 화난 / 총 든 / 자는 / 보스 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  let angryOk = true, gunOk = true, sleepOk = true, bossOk = true;
   const angryImg = new Image();
   angryImg.src = ANGRY_IMG;
   angryImg.onerror = () => { angryOk = false; };
@@ -331,6 +456,9 @@ d<!DOCTYPE html>
   const sleepImg = new Image();
   sleepImg.src = SLEEP_IMG;
   sleepImg.onerror = () => { sleepOk = false; };
+  const bossImg = new Image();
+  bossImg.src = BOSS_IMG;
+  bossImg.onerror = () => { bossOk = false; };
 
   function showAngryFace(on) {
     if (!face.contains(img)) return;
@@ -361,8 +489,9 @@ d<!DOCTYPE html>
 
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
   let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
-  let sleepCount = 0, fakeCount = 0, gunCount = 0;
+  let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0;
   let refusing = false, held = false, sleeping = false;
+  let bossActive = false, bossHp = 0, cakeMode = false;
   let unlimited = false, usedInf = false;
   let clones = [];
   // 억까 효과 상태
@@ -617,6 +746,72 @@ d<!DOCTYPE html>
     toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
   }
 
+  // ---------- 캣굴 (구글처럼 생긴 검색 사이트) ----------
+  function openCatgle() {
+    catgleEl.style.display = 'block';
+    cgPage.className = 'home';
+    cgInput.value = '';
+    cgResult.innerHTML = '';
+    setTimeout(() => { try { cgInput.focus(); } catch (e) {} }, 50);
+  }
+  function closeCatgle() { catgleEl.style.display = 'none'; }
+
+  function addResult(title, url, descNodes) {
+    const item = document.createElement('div');
+    item.className = 'item';
+    const u = document.createElement('div'); u.className = 'rurl'; u.textContent = url;
+    const t = document.createElement('div'); t.className = 'rtitle'; t.textContent = title;
+    const d = document.createElement('div'); d.className = 'rdesc';
+    descNodes.forEach(n => d.appendChild(n));
+    item.appendChild(u); item.appendChild(t); item.appendChild(d);
+    cgResult.appendChild(item);
+  }
+
+  function runSearch() {
+    const q = cgInput.value.trim();
+    if (!q) return;
+    cgPage.className = 'results';
+    cgResult.innerHTML = '';
+    const hit = SEARCH_DB[q.toLowerCase()];
+    if (!hit) {
+      const box = document.createElement('div');
+      box.className = 'nores';
+      box.appendChild(document.createTextNode('"' + q + '"에 대한 검색결과가 없습니다.'));
+      const ul = document.createElement('ul');
+      ['검색어의 철자가 정확한지 확인해 보십시오.', '다른 검색어를 사용해 보십시오.', '더 일반적인 검색어를 사용해 보십시오.']
+        .forEach(s => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
+      box.appendChild(ul);
+      cgResult.appendChild(box);
+      return;
+    }
+    const stat = document.createElement('div');
+    stat.className = 'stat';
+    stat.textContent = '검색결과 약 1,230,000개 (0.42초)';
+    cgResult.appendChild(stat);
+    const b = document.createElement('b'); b.textContent = hit.code;
+    addResult(hit.title, hit.url, [
+      document.createTextNode(hit.desc + ' 코드: '), b, document.createTextNode(' ' + hit.tip)
+    ]);
+    FILLERS.forEach(f => addResult(f.title, f.url, [document.createTextNode(f.desc)]));
+  }
+
+  function runLucky() {
+    cgPage.className = 'results';
+    cgResult.innerHTML = '';
+    cgInput.value = '';
+    const box = document.createElement('div');
+    box.className = 'nores';
+    box.style.fontSize = '1.2rem';
+    box.textContent = LUCKY_LINES[Math.floor(Math.random() * LUCKY_LINES.length)];
+    cgResult.appendChild(box);
+  }
+
+  cgBtn.addEventListener('click', runSearch);
+  cgLucky.addEventListener('click', runLucky);
+  cgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });
+  cgClose.addEventListener('click', closeCatgle);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCatgle(); });
+
   // 일정 시간 동안만 켜지는 효과 (같은 효과를 다시 받으면 시간 갱신)
   function timed(key, on, off, ms) {
     on();
@@ -650,14 +845,17 @@ d<!DOCTYPE html>
       run() { rotateScreen(); } },
     { name: '6초간 고양이 크기가 최소화됩니다.',
       run() {
-        timed('tiny', () => { tiny = true; cat.style.width = MIN_SIZE + 'px'; cat.style.height = MIN_SIZE + 'px'; },
-                      () => { tiny = false; }, EFFECT_TIME);
+        timed('tiny', () => {
+                tiny = true;
+                if (!bossActive) { cat.style.width = MIN_SIZE + 'px'; cat.style.height = MIN_SIZE + 'px'; }
+              },
+              () => { tiny = false; }, EFFECT_TIME);
       } },
     { name: '6초간 고양이가 투명해집니다.',
       run() { timed('ghost', () => field.classList.add('ghost'), () => field.classList.remove('ghost'), EFFECT_TIME); } },
     { name: '분신술이 강제로 발동되었습니다.',
       run() {
-        if (clones.length === 0 && !held && !sleeping) {
+        if (clones.length === 0 && !held && !sleeping && !bossActive && !cakeMode) {
           escaped = false;
           placeEl(cat);
           cat.style.display = 'block';
@@ -694,6 +892,13 @@ d<!DOCTYPE html>
       const on = treeBox.style.display !== 'block';
       treeBox.style.display = on ? 'block' : 'none';
       showToast(on ? '나무가 생성되었습니다.' : '나무가 사라졌습니다.');
+    } else if (v === 'catgle') {
+      if (playing) showToast('캣굴은 게임 중에 열 수 없습니다.');
+      else openCatgle();
+    } else if (v === 'catke') {
+      if (!playing) showToast('케이크는 게임 중에만 받을 수 있습니다.');
+      else if (bossActive) showToast('보스 전투 중에는 사용할 수 없습니다.');
+      else cakeCat();
     } else if (v === '의지') {
       if (playing) {
         showToast('고양이에게 의지를 얻었습니다.');
@@ -863,6 +1068,76 @@ d<!DOCTYPE html>
     }, GUN_SHOW_TIME);
   }
 
+  // ---------- 케이크 고양이 (catke 코드) ----------
+  function cakeCat() {
+    clearTimeout(moveTimer);
+    clearClones();
+    escaped = false; refusing = false; held = false; sleeping = false;
+    cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
+    showAngryFace(false);
+    cat.style.width = '90px';
+    cat.style.height = '90px';
+    placeEl(cat);
+    cat.style.display = 'block';
+    cakeEl.textContent = '🎂';
+    cakeMode = true;
+    cat.classList.add('cake', 'color');
+    bubble.textContent = '케이크를 가져왔습니다.';
+    moveTimer = setTimeout(moveCat, CAKE_TIME);
+  }
+
+  // ---------- 보스 고양이 (체력 5, 빠르기 6) ----------
+  function renderHp() {
+    hpEl.textContent = '♥'.repeat(Math.max(0, bossHp)) + '♡'.repeat(Math.max(0, BOSS_HP - bossHp));
+  }
+
+  function startBoss() {
+    bossCount++;
+    bossCountEl.textContent = bossCount;
+    clearClones();
+    refusing = false; held = false; sleeping = false; cakeMode = false; escaped = false;
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake');
+    if (bossOk && face.contains(img)) img.src = BOSS_IMG;
+    cat.style.width = BOSS_W + 'px';
+    cat.style.height = BOSS_H + 'px';
+    bossActive = true;
+    bossHp = BOSS_HP;
+    renderHp();
+    cat.classList.add('boss', 'color');
+    cat.style.display = 'block';
+    placeEl(cat);
+    showToast('보스 고양이가 나타났습니다. 체력 ' + BOSS_HP);
+    moveTimer = setTimeout(bossMove, BOSS_DELAY);
+  }
+
+  function bossMove() {
+    if (!playing || !bossActive) return;
+    cat.classList.remove('hit');
+    placeEl(cat);
+    moveTimer = setTimeout(bossMove, BOSS_DELAY);
+  }
+
+  function hitBoss() {
+    bossHp--;
+    renderHp();
+    cat.classList.add('hit');
+    if (bossHp <= 0) endBoss();
+  }
+
+  function endBoss() {
+    clearTimeout(moveTimer);
+    bossActive = false;
+    cat.classList.remove('boss', 'hit', 'color');
+    showAngryFace(false);
+    const sz = tiny ? MIN_SIZE : 80;
+    cat.style.width = sz + 'px';
+    cat.style.height = sz + 'px';
+    score += BOSS_SCORE;
+    scoreEl.textContent = score;
+    showToast('보스 고양이를 쓰러뜨렸습니다. +' + BOSS_SCORE);
+    moveTimer = setTimeout(moveCat, 800);
+  }
+
   // ---------- 총 든 고양이 (총 사진 2초 표시 후 게임 오버) ----------
   function gunEnding(bubbleText, reason) {
     playing = false;
@@ -874,9 +1149,11 @@ d<!DOCTYPE html>
     held = false;
     sleeping = false;
     escaped = false;
+    bossActive = false;
+    cakeMode = false;
     gunCount++;
     gunCountEl.textContent = gunCount;
-    cat.classList.remove('hit', 'angry', 'held');
+    cat.classList.remove('hit', 'angry', 'held', 'boss', 'cake');
     if (gunOk && face.contains(img)) {
       img.src = GUN_IMG;
       cat.classList.add('color');
@@ -892,6 +1169,9 @@ d<!DOCTYPE html>
 
   function moveCat() {
     if (!playing) return;
+    cakeMode = false;
+    bossActive = false;
+    cat.classList.remove('cake', 'boss');
 
     // 0.12% 확률로 총 든 고양이 등장
     if (Math.random() < GUN_CHANCE) {
@@ -902,6 +1182,12 @@ d<!DOCTYPE html>
     // 0.5% 확률로 가짜 총
     if (Math.random() < FAKE_GUN_CHANCE) {
       fakeGun();
+      return;
+    }
+
+    // 0.1% 확률로 보스 고양이
+    if (Math.random() < BOSS_CHANCE) {
+      startBoss();
       return;
     }
 
@@ -958,8 +1244,23 @@ d<!DOCTYPE html>
   function catchCat(e) {
     if (!playing) return;
     e.preventDefault();
+
+    // 보스: 누를 때마다 체력 1 감소
+    if (bossActive) { hitBoss(); return; }
+
     if (refusing || held) return; // 거절 중 / 붙잡힌 중 / 가짜 총 중에는 입력 무시
     clearTimeout(moveTimer);
+
+    // 케이크 고양이: 누르면 보너스 점수
+    if (cakeMode) {
+      cakeMode = false;
+      cakeEl.textContent = '';
+      score += CAKE_SCORE;
+      scoreEl.textContent = score;
+      bubble.textContent = '케이크 감사합니다. +' + CAKE_SCORE;
+      moveTimer = setTimeout(moveCat, 900);
+      return;
+    }
 
     // 자는 고양이를 깨우면 화내며 감점
     if (sleeping) {
@@ -1000,6 +1301,7 @@ d<!DOCTYPE html>
   function startGame() {
     if (playing) return;
     stopIdle(); // 시작을 눌렀으므로 대기 사진 숨김
+    closeCatgle();
 
     const name = nickInput.value.trim().slice(0, NICK_MAX);
     if (name && !(nickSet && name === nick)) {
@@ -1021,18 +1323,20 @@ d<!DOCTYPE html>
 
     score = 0; time = GAME_TIME; playing = true;
     escaped = false; refusing = false; held = false; sleeping = false;
+    bossActive = false; cakeMode = false;
     usedInf = unlimited;
     escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0;
-    sleepCount = 0; fakeCount = 0; gunCount = 0;
+    sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0;
     clearClones();
     resetEffects();
     scoreEl.textContent = 0; showTime();
     escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
     rotCountEl.textContent = 0; handCountEl.textContent = 0;
-    sleepCountEl.textContent = 0; fakeCountEl.textContent = 0; gunCountEl.textContent = 0;
+    sleepCountEl.textContent = 0; fakeCountEl.textContent = 0;
+    bossCountEl.textContent = 0; gunCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
-    cat.classList.remove('angry', 'hit', 'gun', 'held', 'color');
+    cat.classList.remove('angry', 'hit', 'gun', 'held', 'color', 'boss', 'cake');
     showAngryFace(false);
     playBgm(true);
     overlay.style.display = 'none';
@@ -1050,13 +1354,15 @@ d<!DOCTYPE html>
     playing = false;
     held = false;
     sleeping = false;
+    bossActive = false;
+    cakeMode = false;
     stopBgm();
     clearInterval(clockTimer);
     clearTimeout(moveTimer);
     clearClones();
     resetEffects();
     cat.style.display = 'none';
-    cat.classList.remove('gun', 'angry', 'hit', 'held');
+    cat.classList.remove('gun', 'angry', 'hit', 'held', 'boss', 'cake');
     showAngryFace(false);
     let extra = '';
     if (score > best) {
