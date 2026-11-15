@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>5.5ver<head>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>catch cat</title>
@@ -98,6 +98,12 @@
   #gunHand .emoji { font-size:3rem; display:flex; justify-content:center; align-items:center; height:100%; }
   #cat.threat #gunHand { display:block; }
 
+  /* 냥캣: 게임 박스 위를 지나가며 가림 */
+  #nyanWrap { position:fixed; display:none; overflow:hidden; pointer-events:none; z-index:40; }
+  #nyan { position:absolute; left:0; top:0; will-change:transform; }
+  #nyan img { width:100%; height:auto; display:block; }
+  #nyan .emoji { font-size:4rem; white-space:nowrap; display:block; }
+
   /* 시작/종료 화면 */
   #overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column;
     overflow:auto; padding:16px; z-index:10; text-align:center; background:var(--ovl); }
@@ -113,13 +119,8 @@
     font-size:1.1rem; font-weight:700; cursor:pointer; touch-action:manipulation; }
   button.sub { background:transparent; color:var(--fg); border:2px solid var(--fg); padding:10px 20px; }
   button.small { padding:8px 14px; font-size:.95rem; }
-  button.rep { padding:2px 8px; font-size:.75rem; border-width:1px; }
   button:disabled { opacity:.4; cursor:default; }
   button:active { transform:scale(.96); }
-  #rank { display:none; width:100%; max-width:360px; text-align:left; font-size:.95rem; }
-  #rank table { width:100%; border-collapse:collapse; }
-  #rank td { padding:4px 6px; border-bottom:1px solid var(--fg); }
-  #rank .note { margin-top:6px; font-size:.8rem; text-align:center; }
 
   /* 뉴스 (게임 박스 아래) */
   #news { width:100%; max-width:560px; display:flex; align-items:center; gap:8px; margin-top:8px; }
@@ -173,11 +174,17 @@
   /* 팝 캣 + 상점 (popcat 코드) */
   #dock { position:fixed; left:8px; bottom:8px; z-index:18; display:none; align-items:flex-end; gap:8px; }
   #dock.open { display:flex; }
-  #pop { width:100px; text-align:center; cursor:pointer; touch-action:manipulation;
+  #popCol { width:100px; }
+  #pop { position:relative; width:100%; text-align:center; cursor:pointer; touch-action:manipulation;
     -webkit-user-select:none; user-select:none; }
   #pop img { width:100%; height:auto; display:block; pointer-events:none; }
   #popFace { font-size:3.5rem; line-height:1.2; }
   #pop .popCnt { font-weight:900; font-size:1rem; background:var(--card); padding:3px 6px; margin-top:4px; }
+  .popLv { background:var(--card); font-weight:700; font-size:.78rem; padding:3px 4px; margin-top:3px; text-align:center; }
+  #upPop { width:100%; margin-top:3px; padding:6px 0; font-size:.78rem; min-height:32px; }
+  .gain { position:absolute; left:50%; top:20%; font-weight:900; font-size:1.3rem; color:#e65100;
+    text-shadow:0 0 3px #fff; pointer-events:none; animation:gain .6s ease-out forwards; }
+  @keyframes gain { from { transform:translate(-50%,0); opacity:1; } to { transform:translate(-50%,-44px); opacity:0; } }
   #shop { display:flex; gap:8px; align-items:flex-end; }
   .sitem { width:80px; text-align:center; }
   .sitem .price, .sitem .sname { background:var(--card); font-weight:700; font-size:.85rem; padding:3px 4px; }
@@ -229,19 +236,21 @@
   /* 폰 / 좁은 화면: 코드창을 맨 아래 전체 폭으로, 상점은 그 위로 */
   @media (max-width: 640px) {
     body { padding:10px 10px 76px; }
-    body.dockOpen { padding-bottom:215px; }
+    body.dockOpen { padding-bottom:250px; }
     #code { left:0; right:0; bottom:0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); }
     #codeInput { flex:1; width:auto; min-width:0; }
     #dock { left:4px; bottom:calc(68px + env(safe-area-inset-bottom)); gap:4px; }
-    #pop { width:76px; }
+    #popCol { width:76px; }
     #pop .popCnt { font-size:.85rem; }
+    .popLv { font-size:.66rem; }
+    #upPop { font-size:.7rem; min-height:34px; }
     #shop { gap:4px; }
     .sitem { width:66px; }
     .sitem .price, .sitem .sname { font-size:.72rem; }
     .sitem .spic { height:54px; }
     .sacts button { font-size:.72rem; min-height:34px; }
     #toast { left:8px; right:8px; max-width:none; bottom:calc(74px + env(safe-area-inset-bottom)); }
-    body.dockOpen #toast { bottom:215px; }
+    body.dockOpen #toast { bottom:250px; }
     #newsPic { width:92px; }
     #newsBox { font-size:.82rem; }
     #idle { width:52px; }
@@ -259,7 +268,9 @@
       화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 2.5%)<br>
       신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 3.5%)<br>
       고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
+      DUM 고양이가 나타난 횟수: <span id="dumCount">0</span>번 (확률 1%)<br>
       고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
+      냥캣이 지나간 횟수: <span id="nyanCount">0</span>번 (확률 0.3%)<br>
       보스 고양이가 나타난 횟수: <span id="bossCount">0</span>번 (확률 0.1%)<br>
       고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)<br>
       뉴스 속보가 나온 횟수: <span id="newsCount">0</span>번 (현재 확률 <span id="newsRate">7</span>%)
@@ -268,7 +279,7 @@
 
   <h1>catch cat</h1>
   <div class="bar">
-    <div>time <span id="time">60</span></div>
+    <div>time <span id="time">45</span></div>
     <div>score <span id="score">0</span></div>
     <div>best <span id="best">0</span></div>
   </div>
@@ -277,7 +288,7 @@
     <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="gunHand"></div><div id="hp"></div><div id="cake">🎂</div></div>
     <div id="overlay">
       <div class="box">
-        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
         <div class="nick">
           <label for="nick">닉네임</label>
           <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
@@ -288,7 +299,6 @@
           <button id="start">시작</button>
           <button id="rankBtn" class="sub">랭킹</button>
         </div>
-        <div id="rank"></div>
       </div>
     </div>
   </div>
@@ -300,15 +310,21 @@
 
   <div id="tree"></div>
 
+  <div id="nyanWrap"><div id="nyan"></div></div>
+
   <div id="dock">
-    <div id="pop">
-      <img id="popImg" alt="팝 캣" draggable="false">
-      <div id="popFace" style="display:none">😺</div>
-      <div class="popCnt">pop <span id="popCount">0</span></div>
+    <div id="popCol">
+      <div id="pop">
+        <img id="popImg" alt="팝 캣" draggable="false">
+        <div id="popFace" style="display:none">😺</div>
+        <div class="popCnt">pop <span id="popCount">0</span></div>
+      </div>
+      <div class="popLv" id="popLvTxt"></div>
+      <button id="upPop">UP</button>
     </div>
     <div id="shop">
       <div class="sitem">
-        <div class="price">300pop</div>
+        <div class="price">100pop</div>
         <div class="spic" id="bustPic"></div>
         <div class="sname">bust <span id="bustOwn">×0</span></div>
         <div class="sacts"><button id="buyBust">구매</button><button id="useBust">사용</button></div>
@@ -365,8 +381,10 @@
   const DEV_IMG = '개발자.jpg';                             // 개발자 고양이 (code 코드)
   const POP_OPEN_IMG = '입열은pop.jpg';                     // 팝 캣 입 연 모습 (popcat 코드)
   const POP_CLOSED_IMG = '입다문pop.png';                   // 팝 캣 입 다문 모습
+  const DUM_IMG = 'ufocat-removebg-preview.png';           // DUM 고양이
   // 아래 목록은 앞에서부터 순서대로 시도함 (파일 이름이 조금 달라도 이어서 찾음)
   const NEWS_IMGS = ['newscat.jpg'];
+  const NYAN_IMGS = ['냥캣.jpg'];
   const BUST_IMGS = ['몬스터주는고양이-removebg-preview__1_.png', '몬스터주는고양이-removebg-preview (1).png',
                      '몬스터주는고양이-removebg-preview.png'];
   const GUNITEM_IMGS = ['a3c1506705b1937665205031001bd09c-removebg-preview.png'];
@@ -387,7 +405,7 @@
       url: 'catgle.cat › secret › pop',
       desc: '검색어 "pop"과 관련된 비밀 코드를 찾았습니다.',
       code: 'popcat',
-      tip: '코드창에 입력한 뒤 팝 캣을 눌러 pop을 모으고, 상점에서 아이템을 구매해 보십시오.'
+      tip: '코드창에 입력한 뒤 팝 캣을 눌러 pop을 모으고, 상점과 업그레이드를 이용해 보십시오.'
     },
     'bug': {
       title: '개발자 고양이를 부르는 방법',
@@ -417,7 +435,7 @@
 
   // 뉴스 헤드라인 (좋은 뉴스 +3점 / 나쁜 뉴스 -1점)
   const NEWS_GOOD = [
-    '속보: 아나바 식품 현재 130%',
+    '아나바 식품 현재 130%',
     '속보: 고양이 사료 가격이 대폭 하락했습니다',
     '속보: 전국 집사들의 월급이 인상되었습니다',
     '속보: 참치캔 무료 배포가 시작되었습니다',
@@ -425,20 +443,23 @@
     '속보: 캣타워 건설 지원금이 지급됩니다'
   ];
   const NEWS_BAD = [
-    '속보: 고양이 간식에 강아지털이 발견되어 조사...',
+    '속보: 고양이 간식 가격이 폭등했습니다',
     '속보: 전국에 털 날림 주의보가 발령되었습니다',
     '속보: 아나바 식품 상장 폐지 위기',
     '속보: 새벽 3시 우다다 경보가 발령되었습니다',
     '속보: 캣타워 안전 점검에서 결함이 발견되었습니다',
-    '뉴스가 안 좋아서 기분이 안좋다고오!!'
+    '속보: 참치캔이 전량 품절되었습니다'
   ];
 
   // 공용 랭킹 서버 (Firebase Realtime Database)
+  // RANK_ROOT를 바꾸면 새 시즌(랭킹 초기화)이 됨. ranking.html의 RANK_ROOT와 항상 같게 유지할 것
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
+  const RANK_ROOT = 'ranks/s2';
+  const RANK_PAGE = 'ranking.html';
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
   const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
-  const GAME_TIME = 60;        // 제한 시간(초)
+  const GAME_TIME = 45;        // 제한 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
@@ -467,26 +488,37 @@
   const CAKE_SCORE = 3;        // 케이크 고양이를 눌렀을 때 점수
   const CAKE_TIME = 4000;      // 케이크 고양이가 머무는 시간 (4초)
   const CAKE_W = 130, CAKE_H = 124; // 케이크 고양이 크기
-  const DEV_TIME = 2000;       // 개발자 고양이가 머무는 시간 (3초)
+  const DEV_TIME = 3000;       // 개발자 고양이가 머무는 시간 (3초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
-  const RANK_MAX = 20;         // 랭킹 표시 인원
   const NICK_MAX = 10;         // 닉네임 최대 글자 수
   const NICK_CHANGES_MAX = 3;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
 
-  // 상점
-  const BUST_PRICE = 300;      // bust 가격 (pop)
-  const BOOST_TIME = 6000;     // bust 지속 시간 (6초)
-  const BOOST_MUL = 3;         // bust 적용 중 고양이를 잡을 때 얻는 점수
+  // DUM 고양이 / 냥캣
+  const DUM_CHANCE = 0.01;     // DUM 고양이 확률 1% (이동 1회당)
+  const DUM_STILL_TIME = 2000; // 움직이지 않는 시간 (2초)
+  const DUM_FAST_TIME = 2000;  // 빨라지는 시간 (2초)
+  const DUM_FAST_MUL = 2.5;    // 기존 속도의 2.5배
+  const DUM_W = 110, DUM_H = 110;
+  const NYAN_CHANCE = 0.003;   // 냥캣 확률 0.3% (이동 1회당)
+  const NYAN_TIME = 3200;      // 냥캣이 화면을 지나가는 시간 (3.2초)
+
+  // 상점 / 팝 캣
+  const BUST_PRICE = 100;      // bust 가격 (pop)
+  const BOOST_TIME = 3000;     // bust 지속 시간 (3초)
+  const BOOST_MUL = 2;         // bust 적용 중 고양이를 잡을 때 얻는 점수
   const GUN_PRICE = 10000;     // gun 가격 (pop)
   const THREAT_SCORE = 8;      // gun으로 협박해서 얻는 점수
   const THREAT_TIME = 2000;    // 협박 장면이 유지되는 시간 (2초)
+  const POP_MAX_LV = 5;        // 팝 캣 최대 레벨 (최대 레벨에서 한 번에 +5)
+  const POP_UP_COST = [100, 400, 1500, 5000]; // Lv1→2, 2→3, 3→4, 4→5 업그레이드 비용 (pop)
+  const POP_SUBMIT_DELAY = 6000; // 마지막으로 누른 뒤 pop 랭킹에 올리기까지 기다리는 시간
 
   // 뉴스
   const NEWS_START = 0.07;     // 판이 시작할 때 뉴스 확률 (1초마다 굴림)
   const NEWS_STEP = 0.01;      // 뉴스가 안 나올 때마다 늘어나는 확률 (1초에 1%)
   const NEWS_RESET = 0.01;     // 뉴스가 나온 뒤 되돌아가는 확률
-  const NEWS_GOOD_RATE = 0.45;  // 좋은 뉴스일 확률
+  const NEWS_GOOD_RATE = 0.5;  // 좋은 뉴스일 확률
   const NEWS_GOOD_SCORE = 3;   // 좋은 뉴스 점수
   const NEWS_BAD_SCORE = 1;    // 나쁜 뉴스 감점
 
@@ -532,7 +564,9 @@
   const rotCountEl = document.getElementById('rotCount');
   const handCountEl = document.getElementById('handCount');
   const sleepCountEl = document.getElementById('sleepCount');
+  const dumCountEl = document.getElementById('dumCount');
   const fakeCountEl = document.getElementById('fakeCount');
+  const nyanCountEl = document.getElementById('nyanCount');
   const bossCountEl = document.getElementById('bossCount');
   const gunCountEl = document.getElementById('gunCount');
   const newsCountEl = document.getElementById('newsCount');
@@ -541,6 +575,8 @@
   const newsBox = document.getElementById('newsBox');
   const newsText = document.getElementById('newsText');
   const newsBadge = document.getElementById('newsBadge');
+  const nyanWrap = document.getElementById('nyanWrap');
+  const nyan = document.getElementById('nyan');
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
   const toast = document.getElementById('toast');
@@ -550,7 +586,6 @@
   const nickSave = document.getElementById('nickSave');
   const nickInfo = document.getElementById('nickInfo');
   const rankBtn = document.getElementById('rankBtn');
-  const rankEl = document.getElementById('rank');
   const catgleEl = document.getElementById('catgle');
   const cgPage = document.getElementById('cgPage');
   const cgLogoBox = document.getElementById('cgLogoBox');
@@ -567,6 +602,8 @@
   const popImg = document.getElementById('popImg');
   const popFace = document.getElementById('popFace');
   const popCountEl = document.getElementById('popCount');
+  const popLvTxt = document.getElementById('popLvTxt');
+  const upPopBtn = document.getElementById('upPop');
   const bustPic = document.getElementById('bustPic');
   const gunPic = document.getElementById('gunPic');
   const bustOwnEl = document.getElementById('bustOwn');
@@ -673,6 +710,12 @@
   loadFirst(ghimg, GUNITEM_IMGS, () => { gunHand.innerHTML = '<span class="emoji">🔫</span>'; });
   gunHand.appendChild(ghimg);
 
+  // 냥캣 사진 (실패하면 이모지)
+  let nyanOk = true;
+  const nyimg = new Image();
+  loadFirst(nyimg, NYAN_IMGS, () => { nyanOk = false; nyan.innerHTML = '<span class="emoji">🌈🐱</span>'; });
+  nyan.appendChild(nyimg);
+
   // 캣굴 로고 넣기 (실패하면 글자 로고)
   const limg = new Image();
   limg.src = CATGLE_IMG;
@@ -685,8 +728,8 @@
   };
   cgLogoBox.appendChild(limg);
 
-  // 화난 / 총 든 / 자는 / 보스 / 케이크 사진 미리 불러오기 (실패하면 평소 사진 유지)
-  let angryOk = true, gunOk = true, sleepOk = true, bossOk = true, cakeOk = true;
+  // 화난 / 총 든 / 자는 / 보스 / 케이크 / DUM 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  let angryOk = true, gunOk = true, sleepOk = true, bossOk = true, cakeOk = true, dumOk = true;
   const angryImg = new Image();
   angryImg.src = ANGRY_IMG;
   angryImg.onerror = () => { angryOk = false; };
@@ -702,6 +745,9 @@
   const cakeImg = new Image();
   cakeImg.src = CAKE_IMG;
   cakeImg.onerror = () => { cakeOk = false; };
+  const dumImg = new Image();
+  dumImg.src = DUM_IMG;
+  dumImg.onerror = () => { dumOk = false; };
 
   function showAngryFace(on) {
     if (!face.contains(img)) return;
@@ -732,12 +778,14 @@
 
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
   let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
-  let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0, newsCount = 0;
+  let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0, newsCount = 0, dumCount = 0, nyanCount = 0;
   let refusing = false, held = false, sleeping = false;
   let bossActive = false, bossHp = 0, cakeMode = false, cakeSized = false;
   let cakeUsed = false, gunUsed = false;       // 한 판에 한 번만 쓸 수 있는 것들
   let boostActive = false, boostEnd = 0, boostTimer = null, boostTick = null;
   let newsChance = NEWS_START, newsTimer = null, newsBadgeTimer = null;
+  let dumPhase = null, dumFast = false, dumTimer = null;   // DUM 고양이 상태 ('still' / 'fast')
+  let nyanBusy = false, nyanTimer = null;
   let unlimited = false, usedInf = false;
   let clones = [];
   // 억까 효과 상태
@@ -762,7 +810,7 @@
     idleBox.style.display = 'none';
   }
 
-  // ---------- 기기 식별 / 신고 기록 (이 브라우저) ----------
+  // ---------- 기기 식별 ----------
   let cid = null;
   try { cid = localStorage.getItem('catCid'); } catch (e) {}
   if (!cid) {
@@ -772,37 +820,35 @@
     cid = raw.replace(/[^a-zA-Z0-9]/g, '');
     try { localStorage.setItem('catCid', cid); } catch (e) {}
   }
-  let reportedSet = {};
-  try { reportedSet = JSON.parse(localStorage.getItem('catReported')) || {}; } catch (e) {}
 
-  // ---------- 공용 랭킹 (Firebase REST) ----------
-  async function dbGet() {
+  // ---------- 공용 랭킹 (Firebase REST). board: 'score' 또는 'pop' ----------
+  async function dbGet(board) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000); // 4초 안에 응답이 없으면 포기
     try {
-      const r = await fetch(DB + '/ranks.json', { signal: ctrl.signal });
+      const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '.json', { signal: ctrl.signal });
       if (!r.ok) throw new Error('get ' + r.status);
       return (await r.json()) || {};
     } finally {
       clearTimeout(timer);
     }
   }
-  function toList(obj) {
+  function toList(obj, field) {
     return Object.keys(obj)
       .map(k => Object.assign({ key: k }, obj[k]))
-      .filter(e => e && typeof e.name === 'string' && typeof e.score === 'number');
+      .filter(e => e && typeof e.name === 'string' && typeof e[field] === 'number');
   }
   function repCount(e) { return e.reports ? Object.keys(e.reports).length : 0; }
-  function visibleSorted(list) {
+  function visibleSorted(list, field) {
     return list.filter(e => repCount(e) < REPORT_LIMIT)
-      .sort((a, b) => b.score - a.score || (a.t || 0) - (b.t || 0));
+      .sort((a, b) => b[field] - a[field] || (a.t || 0) - (b.t || 0));
   }
 
-  // 점수 등록: 한 사람당 최고 점수 하나만 유지.
+  // 기록 등록: 한 사람당 최고 기록 하나만 유지.
   // 이미 다른 사람이 쓰는 닉네임이면 익명으로 등록하고 true를 돌려줌
-  async function submitScore() {
+  async function submitEntry(board, field, value) {
     let name = nickSet ? nick : '익명';
-    const list = toList(await dbGet());
+    const list = toList(await dbGet(board), field);
     let dup = false;
     if (nickSet && list.some(e => e.name.toLowerCase() === name.toLowerCase() && e.cid !== cid)) {
       name = '익명';
@@ -810,98 +856,22 @@
     }
     const mine = list.find(e => e.cid === cid);
     if (!mine) {
-      const r = await fetch(DB + '/ranks.json', {
-        method: 'POST',
-        body: JSON.stringify({ name: name, score: score, cid: cid, t: Date.now() })
-      });
+      const body = { name: name, cid: cid, t: Date.now() };
+      body[field] = value;
+      const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '.json', { method: 'POST', body: JSON.stringify(body) });
       if (!r.ok) throw new Error('post');
       return dup;
     }
     const patch = {};
-    if (score > mine.score) { patch.score = score; patch.t = Date.now(); }
+    if (value > mine[field]) { patch[field] = value; patch.t = Date.now(); }
     if (name !== mine.name) { patch.name = name; patch.reports = null; } // 이름이 바뀌면 신고 초기화
     if (Object.keys(patch).length) {
-      const r = await fetch(DB + '/ranks/' + mine.key + '.json', { method: 'PATCH', body: JSON.stringify(patch) });
+      const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '/' + mine.key + '.json',
+        { method: 'PATCH', body: JSON.stringify(patch) });
       if (!r.ok) throw new Error('patch');
     }
     return dup;
   }
-
-  async function reportEntry(key) {
-    const r = await fetch(DB + '/ranks/' + key + '/reports/' + cid + '.json', { method: 'PUT', body: 'true' });
-    if (!r.ok) throw new Error('report');
-  }
-
-  async function renderRank() {
-    rankEl.textContent = '불러오는 중...';
-    let all;
-    try { all = toList(await dbGet()); }
-    catch (e) { rankEl.textContent = '랭킹 서버에 연결하지 못했습니다.'; return; }
-    const vis = visibleSorted(all);
-    const hiddenN = all.length - vis.length;
-    rankEl.innerHTML = '';
-    if (!vis.length) {
-      const d = document.createElement('div');
-      d.className = 'note';
-      d.textContent = '아직 기록이 없습니다.';
-      rankEl.appendChild(d);
-      return;
-    }
-    const table = document.createElement('table');
-    vis.slice(0, RANK_MAX).forEach((e, i) => {
-      const tr = document.createElement('tr');
-      const mine = e.cid === cid;
-      const cells = [(i + 1) + '위', e.name + (mine ? ' ◀' : ''), e.score + '점'];
-      cells.forEach(t => {
-        const td = document.createElement('td');
-        td.textContent = t; // 닉네임은 글자 그대로 표시
-        if (mine) td.style.fontWeight = '900';
-        tr.appendChild(td);
-      });
-      const tdBtn = document.createElement('td');
-      if (!mine) {
-        const b = document.createElement('button');
-        b.className = 'sub rep';
-        if (reportedSet[e.key]) { b.textContent = '신고함'; b.disabled = true; }
-        else {
-          b.textContent = '신고';
-          b.addEventListener('click', async () => {
-            if (!confirm('"' + e.name + '" 기록을 신고하시겠습니까?\n부적절한 닉네임에만 사용해 주십시오.')) return;
-            b.disabled = true;
-            try {
-              await reportEntry(e.key);
-              reportedSet[e.key] = 1;
-              try { localStorage.setItem('catReported', JSON.stringify(reportedSet)); } catch (x) {}
-              showToast('신고가 접수되었습니다.');
-              renderRank();
-            } catch (x) {
-              b.disabled = false;
-              showToast('신고에 실패하였습니다. 잠시 후 다시 시도해 주십시오.');
-            }
-          });
-        }
-        tdBtn.appendChild(b);
-      }
-      tr.appendChild(tdBtn);
-      table.appendChild(tr);
-    });
-    rankEl.appendChild(table);
-    if (hiddenN > 0) {
-      const n = document.createElement('div');
-      n.className = 'note';
-      n.textContent = '신고 누적으로 숨겨진 기록: ' + hiddenN + '건';
-      rankEl.appendChild(n);
-    }
-  }
-
-  function setRankOpen(open, skipRender) {
-    rankEl.style.display = open ? 'block' : 'none';
-    rankBtn.textContent = open ? '랭킹 닫기' : '랭킹';
-    if (open && !skipRender) renderRank();
-  }
-  rankBtn.addEventListener('click', () => {
-    setRankOpen(rankEl.style.display !== 'block');
-  });
 
   // ---------- 닉네임 (형식 / 금지어 / 동명 / 변경 3회 제한) ----------
   let nick = '익명', nickSet = false, nickChanges = 0;
@@ -928,7 +898,7 @@
   async function isDuplicateNick(name) {
     try {
       const low = name.toLowerCase();
-      return toList(await dbGet()).some(e => e.name.toLowerCase() === low && e.cid !== cid);
+      return toList(await dbGet('score'), 'score').some(e => e.name.toLowerCase() === low && e.cid !== cid);
     } catch (e) { return false; } // 서버에 연결되지 않으면 검사하지 않음
   }
   function applyNick(name) {
@@ -1063,19 +1033,41 @@
   cgClose.addEventListener('click', closeCatgle);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCatgle(); });
 
-  // ---------- 팝 캣 + 상점 (popcat 코드) ----------
-  let popCount = 0;
-  try { popCount = parseInt(localStorage.getItem('catPop')) || 0; } catch (e) {}
+  // ---------- 팝 캣 + 상점 + 업그레이드 (popcat 코드) ----------
+  let popCount = 0;      // 지금 쓸 수 있는 pop (상점 / 업그레이드에 사용하면 줄어듦)
+  let popTotal = 0;      // 지금까지 모은 pop 총량 (pop 랭킹 기준)
+  let popLv = 1;
+  try {
+    popCount = parseInt(localStorage.getItem('catPop')) || 0;
+    const pt = parseInt(localStorage.getItem('catPopTotal'));
+    popTotal = isNaN(pt) ? popCount : Math.max(pt, popCount);
+    popLv = Math.min(POP_MAX_LV, Math.max(1, parseInt(localStorage.getItem('catPopLv')) || 1));
+  } catch (e) {}
   let own = { bust: 0, gun: false };
   try {
     const o = JSON.parse(localStorage.getItem('catOwn'));
     if (o && typeof o === 'object') { own.bust = Math.max(0, parseInt(o.bust) || 0); own.gun = !!o.gun; }
   } catch (e) {}
-  function savePop() { try { localStorage.setItem('catPop', String(popCount)); } catch (e) {} }
+  function savePop() {
+    try {
+      localStorage.setItem('catPop', String(popCount));
+      localStorage.setItem('catPopTotal', String(popTotal));
+    } catch (e) {}
+  }
   function saveOwn() { try { localStorage.setItem('catOwn', JSON.stringify(own)); } catch (e) {} }
+  function saveLv() { try { localStorage.setItem('catPopLv', String(popLv)); } catch (e) {} }
+  function popPer() { return popLv; } // 한 번 눌러서 얻는 pop (최대 레벨이면 5)
 
   function renderShop() {
     popCountEl.textContent = popCount;
+    popLvTxt.textContent = (popLv >= POP_MAX_LV ? 'MAX ' : '') + 'Lv ' + popLv + ' · 클릭당 +' + popPer();
+    if (popLv >= POP_MAX_LV) {
+      upPopBtn.textContent = 'MAX';
+      upPopBtn.disabled = true;
+    } else {
+      upPopBtn.textContent = 'UP ' + POP_UP_COST[popLv - 1].toLocaleString() + 'pop';
+      upPopBtn.disabled = false;
+    }
     bustOwnEl.textContent = '×' + own.bust;
     gunOwnEl.textContent = own.gun ? '보유' : '';
     buyGunBtn.textContent = own.gun ? '보유중' : '구매';
@@ -1083,6 +1075,26 @@
     useGunBtn.textContent = (playing && gunUsed) ? '사용됨' : '사용';
   }
   renderShop();
+
+  // pop 랭킹 등록 (마지막으로 누른 뒤 잠시 기다렸다가 한 번에 올림)
+  let popDirty = false, popSubmitTimer = null, popSubmitting = false;
+  function schedulePopSubmit() {
+    popDirty = true;
+    clearTimeout(popSubmitTimer);
+    popSubmitTimer = setTimeout(flushPop, POP_SUBMIT_DELAY);
+  }
+  async function flushPop() {
+    clearTimeout(popSubmitTimer);
+    if (!popDirty || popSubmitting) return;
+    popDirty = false;
+    popSubmitting = true;
+    try { await submitEntry('pop', 'pop', popTotal); } catch (e) { popDirty = true; }
+    popSubmitting = false;
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushPop();
+  });
+  if (popTotal > 0) schedulePopSubmit(); // 이미 모아 둔 pop도 랭킹에 반영
 
   let popOk = true;
   popImg.onerror = () => {
@@ -1122,18 +1134,44 @@
     } catch (e) {}
   }
 
-  // 팝 캣을 누를 때마다 pop 1개
+  function popFloat(n) {
+    const s = document.createElement('div');
+    s.className = 'gain';
+    s.textContent = '+' + n;
+    popBox.appendChild(s);
+    setTimeout(() => { s.remove(); }, 600);
+  }
+
+  // 팝 캣을 누를 때마다 pop을 얻음 (레벨만큼)
   popBox.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    popCount++;
+    const n = popPer();
+    popCount += n;
+    popTotal += n;
     popCountEl.textContent = popCount;
     savePop();
+    popFloat(n);
     setPop(true);
     popSound();
+    schedulePopSubmit();
   });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => {
     popBox.addEventListener(ev, () => setPop(false));
   });
+
+  function upgradePop() {
+    if (popLv >= POP_MAX_LV) { showToast('popcat은 이미 최대 레벨입니다.'); return; }
+    const cost = POP_UP_COST[popLv - 1];
+    if (popCount < cost) {
+      showToast('pop이 부족합니다. (필요 ' + cost.toLocaleString() + ' / 보유 ' + popCount.toLocaleString() + ')');
+      return;
+    }
+    popCount -= cost;
+    popLv++;
+    savePop(); saveLv(); renderShop();
+    showToast('popcat Lv ' + popLv + ': 한 번 누를 때 pop +' + popPer());
+  }
+  upPopBtn.addEventListener('click', upgradePop);
 
   function togglePop() {
     const on = !dock.classList.contains('open');
@@ -1200,7 +1238,10 @@
     if (!playing) { showToast('gun은 게임 중에만 사용할 수 있습니다.'); return; }
     if (!own.gun) { showToast('gun을 먼저 구매해야 합니다.'); return; }
     if (gunUsed) { showToast('gun은 한 판에 한 번만 사용할 수 있습니다.'); return; }
-    if (bossActive || held || cakeMode) { showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.'); return; }
+    if (bossActive || held || cakeMode || dumPhase === 'still') {
+      showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.');
+      return;
+    }
     gunUsed = true;
     renderShop();
     threatCat();
@@ -1219,7 +1260,7 @@
     cat.classList.add('threat', 'color');
     score += THREAT_SCORE;
     scoreEl.textContent = score;
-    bubble.textContent = '8점으로 퉁지차 응?. +' + THREAT_SCORE;
+    bubble.textContent = '살려 주십시오. +' + THREAT_SCORE;
     moveTimer = setTimeout(moveCat, THREAT_TIME);
   }
 
@@ -1227,6 +1268,14 @@
   useBustBtn.addEventListener('click', useBust);
   buyGunBtn.addEventListener('click', () => buyItem('gun'));
   useGunBtn.addEventListener('click', useGun);
+
+  // ---------- 랭킹 페이지로 이동 ----------
+  async function goRanking() {
+    rankBtn.disabled = true;
+    try { await Promise.race([flushPop(), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+    location.href = RANK_PAGE;
+  }
+  rankBtn.addEventListener('click', goRanking);
 
   // ---------- 뉴스 (1초마다 확률을 굴림) ----------
   function showNews() {
@@ -1278,6 +1327,7 @@
     if (playing) {
       const wasTiny = tiny;
       resetEffects();
+      dumFast = false; // DUM 고양이의 가속도 해제
       // 크기 축소 효과가 걸려 있었다면 평소 크기로 되돌림 (다른 상태 중이 아닐 때만)
       if (wasTiny && !bossActive && !cakeSized && !held) {
         cat.style.width = '80px';
@@ -1322,7 +1372,7 @@
       run() { timed('ghost', () => field.classList.add('ghost'), () => field.classList.remove('ghost'), EFFECT_TIME); } },
     { name: '분신술이 강제로 발동되었습니다.',
       run() {
-        if (clones.length === 0 && !held && !sleeping && !bossActive && !cakeMode) {
+        if (clones.length === 0 && !held && !sleeping && !bossActive && !cakeMode && dumPhase !== 'still') {
           escaped = false;
           placeEl(cat);
           cat.style.display = 'block';
@@ -1366,6 +1416,7 @@
       if (!playing) showToast('케이크는 게임 중에만 받을 수 있습니다.');
       else if (cakeUsed) showToast('케이크는 한 판에 한 번만 받을 수 있습니다.');
       else if (bossActive) showToast('보스 전투 중에는 사용할 수 없습니다.');
+      else if (dumPhase === 'still') showToast('DUM 고양이가 나온 동안에는 사용할 수 없습니다.');
       else { cakeUsed = true; cakeCat(); }
     } else if (v === 'code') {
       devCat();
@@ -1511,6 +1562,85 @@
     moveTimer = setTimeout(moveCat, SLEEP_TIME);
   }
 
+  // ---------- DUM 고양이: 2초간 움직이지 않다가, 이후 2초간 2.5배 빨라짐 ----------
+  function baseFace() {
+    if (dumFast && dumOk && face.contains(img)) {
+      img.src = DUM_IMG;           // 빨라진 동안에는 DUM 그림 유지
+      cat.classList.add('color');
+    } else {
+      showAngryFace(false);
+    }
+  }
+
+  function startDum() {
+    dumCount++;
+    dumCountEl.textContent = dumCount;
+    clearClones();
+    escaped = false; refusing = false; held = false; sleeping = false; cakeMode = false;
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'boss', 'threat');
+    if (dumOk && face.contains(img)) {
+      img.src = DUM_IMG;
+      cat.classList.add('color');
+    }
+    cat.style.width = DUM_W + 'px';
+    cat.style.height = DUM_H + 'px';
+    cat.style.display = 'block';
+    placeEl(cat);
+    dumPhase = 'still';
+    clearTimeout(moveTimer);
+    clearTimeout(dumTimer);
+    showToast('DUM 고양이가 나타났습니다. ' + (DUM_STILL_TIME / 1000) + '초간 움직이지 않습니다.');
+    dumTimer = setTimeout(startDumFast, DUM_STILL_TIME);
+  }
+
+  function startDumFast() {
+    if (!playing) return;
+    dumPhase = 'fast';
+    dumFast = true;
+    showToast('DUM 고양이가 ' + DUM_FAST_MUL + '배 빨라집니다.');
+    clearTimeout(moveTimer);
+    moveCat();
+    clearTimeout(dumTimer);
+    dumTimer = setTimeout(endDum, DUM_FAST_TIME);
+  }
+
+  function endDum() {
+    dumPhase = null;
+    dumFast = false;
+  }
+
+  // ---------- 냥캣: 게임 박스 위를 지나가며 가림 ----------
+  function startNyan() {
+    if (nyanBusy) return;
+    nyanBusy = true;
+    nyanCount++;
+    nyanCountEl.textContent = nyanCount;
+    const r = field.getBoundingClientRect();
+    nyanWrap.style.left = r.left + 'px';
+    nyanWrap.style.top = r.top + 'px';
+    nyanWrap.style.width = r.width + 'px';
+    nyanWrap.style.height = r.height + 'px';
+    nyanWrap.style.display = 'block';
+    const w = nyanOk ? Math.min(r.width * 1.1, 640) : 220;
+    const ratio = (nyanOk && nyimg.naturalWidth) ? nyimg.naturalHeight / nyimg.naturalWidth : 0.46;
+    const h = nyanOk ? w * ratio : 80;
+    nyan.style.width = w + 'px';
+    nyan.style.top = Math.random() * Math.max(0, r.height - h) + 'px';
+    nyan.style.transition = 'none';
+    nyan.style.transform = 'translateX(' + (-w) + 'px)';
+    void nyan.offsetWidth;
+    nyan.style.transition = 'transform ' + NYAN_TIME + 'ms linear';
+    nyan.style.transform = 'translateX(' + r.width + 'px)';
+    clearTimeout(nyanTimer);
+    nyanTimer = setTimeout(stopNyan, NYAN_TIME + 100);
+  }
+
+  function stopNyan() {
+    nyanBusy = false;
+    clearTimeout(nyanTimer);
+    nyanWrap.style.display = 'none';
+  }
+
   // ---------- 가짜 총 (진짜와 똑같이 나오지만 장전되지 않음) ----------
   function fakeGun() {
     fakeCount++;
@@ -1624,6 +1754,9 @@
     playing = false;
     stopBgm();
     stopBoost();
+    stopNyan();
+    clearTimeout(dumTimer);
+    dumPhase = null; dumFast = false;
     clearInterval(newsTimer);
     clearTimeout(moveTimer);
     clearInterval(clockTimer);
@@ -1662,7 +1795,7 @@
       cat.style.width = sz + 'px';
       cat.style.height = sz + 'px';
     }
-    showAngryFace(false);       // 평소 사진으로 복귀
+    baseFace();                 // 평소 사진으로 복귀 (DUM 가속 중에는 DUM 그림 유지)
 
     // 0.12% 확률로 총 든 고양이 등장
     if (Math.random() < GUN_CHANCE) {
@@ -1681,6 +1814,15 @@
       startBoss();
       return;
     }
+
+    // 1% 확률로 DUM 고양이 (이미 DUM 동작 중이면 제외)
+    if (!dumPhase && Math.random() < DUM_CHANCE) {
+      startDum();
+      return;
+    }
+
+    // 0.3% 확률로 냥캣 (게임은 그대로 진행, 화면만 가림)
+    if (!nyanBusy && Math.random() < NYAN_CHANCE) startNyan();
 
     // 3.5% 확률로 신의 손 등장
     if (Math.random() < HAND_CHANCE) {
@@ -1706,6 +1848,7 @@
     held = false;
     sleeping = false;
     cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
+    if (dumFast && dumOk) cat.classList.add('color');
 
     const cloning = clones.length > 0;
 
@@ -1727,7 +1870,7 @@
       }
     }
     cat.style.display = 'block';
-    const delay = Math.max(350, 900 - score * 25) * SLOW * speedMul;
+    const delay = Math.max(350, 900 - score * 25) * SLOW * speedMul / (dumFast ? DUM_FAST_MUL : 1);
     moveTimer = setTimeout(moveCat, delay);
   }
 
@@ -1739,6 +1882,16 @@
     if (bossActive) { hitBoss(); return; }
 
     if (refusing || held) return; // 거절 중 / 붙잡힌 중 / 협박 중 / 가짜 총 중에는 입력 무시
+
+    // DUM 고양이(움직이지 않는 2초): 눌러도 움직이지 않고 점수는 일반과 같이 쌓임
+    if (dumPhase === 'still') {
+      score += boostActive ? BOOST_MUL : 1;
+      scoreEl.textContent = score;
+      cat.classList.add('hit');
+      setTimeout(() => { cat.classList.remove('hit'); }, 80);
+      return;
+    }
+
     clearTimeout(moveTimer);
 
     // 케이크 고양이: 누르면 보너스 점수
@@ -1809,7 +1962,6 @@
       }
     }
     updateNickInfo();
-    setRankOpen(false);
 
     score = 0; time = GAME_TIME; playing = true;
     escaped = false; refusing = false; held = false; sleeping = false;
@@ -1817,15 +1969,19 @@
     cakeUsed = false; gunUsed = false;            // 한 판에 한 번씩 다시 사용 가능
     usedInf = unlimited;
     escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0;
-    sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0; newsCount = 0;
+    sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0; newsCount = 0; dumCount = 0; nyanCount = 0;
     clearClones();
     resetEffects();
     stopBoost();
+    stopNyan();
+    clearTimeout(dumTimer);
+    dumPhase = null; dumFast = false;
     scoreEl.textContent = 0; showTime();
     escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
     rotCountEl.textContent = 0; handCountEl.textContent = 0;
     sleepCountEl.textContent = 0; fakeCountEl.textContent = 0;
     bossCountEl.textContent = 0; gunCountEl.textContent = 0; newsCountEl.textContent = 0;
+    dumCountEl.textContent = 0; nyanCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
     cat.classList.remove('angry', 'hit', 'gun', 'held', 'color', 'boss', 'cake', 'threat');
@@ -1861,6 +2017,9 @@
     cakeSized = false;
     stopBgm();
     stopBoost();
+    stopNyan();
+    clearTimeout(dumTimer);
+    dumPhase = null; dumFast = false;
     clearInterval(newsTimer);
     clearInterval(clockTimer);
     clearTimeout(moveTimer);
@@ -1870,6 +2029,7 @@
     cat.classList.remove('gun', 'angry', 'hit', 'held', 'boss', 'cake', 'threat');
     showAngryFace(false);
     renderShop();
+    try { localStorage.setItem('catLast', String(score)); } catch (e) {}
     let extra = '';
     if (score > best) {
       best = score;
@@ -1883,16 +2043,15 @@
     document.getElementById('start').textContent = '다시 시작';
     overlay.style.display = 'flex';
     updateNickInfo();
-    setRankOpen(true, true);
     startIdleTimer(); // 시작 화면으로 돌아왔으므로 대기 시간 측정
 
-    // 점수 등록 후 랭킹 갱신
+    // 점수 등록 후 내 순위 표시 (전체 순위는 랭킹 페이지에서 확인)
     (async () => {
       const note = document.getElementById('rankNote');
       try {
         if (!usedInf && score > 0) {
-          const dup = await submitScore();
-          const vis = visibleSorted(toList(await dbGet()));
+          const dup = await submitEntry('score', 'score', score);
+          const vis = visibleSorted(toList(await dbGet('score'), 'score'), 'score');
           const idx = vis.findIndex(e => e.cid === cid);
           let t = '';
           if (idx >= 0) t = '현재 랭킹 ' + (idx + 1) + '위입니다.';
@@ -1902,7 +2061,6 @@
       } catch (e) {
         if (note) note.textContent = '랭킹 서버에 연결하지 못했습니다.';
       }
-      renderRank();
     })();
   }
 
