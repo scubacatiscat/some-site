@@ -40,11 +40,21 @@
     display:flex; flex-direction:column; align-items:center; padding:16px;
     -webkit-user-select:none; user-select:none; }
   h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
-  .bar { display:flex; gap:12px; margin-bottom:10px; font-weight:700; }
+  .bar { display:flex; gap:12px; margin-bottom:8px; font-weight:700; }
   .bar div { background:var(--card); padding:6px 14px; }
+
+  /* bust 적용 표시 */
+  #boost { position:relative; width:100%; max-width:560px; height:22px; margin-bottom:6px; overflow:hidden;
+    border:1px solid var(--fg); background:var(--card); visibility:hidden; }
+  #boost.on { visibility:visible; }
+  #boostFill { position:absolute; left:0; top:0; bottom:0; width:100%; background:#ffb300; }
+  #boostTxt { position:relative; display:block; text-align:center; font-weight:800; font-size:.8rem; line-height:20px;
+    color:#fff; text-shadow:0 0 3px #000, 0 0 3px #000; }
+
   #field { position:relative; width:100%; max-width:560px; flex:1; max-height:520px; min-height:300px;
     background:var(--card); touch-action:manipulation; transition:transform .4s; }
   #field.flip { transform:rotate(180deg); }
+  #field.boosted { box-shadow:0 0 0 4px #ffb300, 0 0 18px #ffb300; }
   #cat, .clone { position:absolute; width:80px; height:80px; cursor:pointer; z-index:5;
     transition:left .12s, top .12s, opacity .12s; filter:grayscale(1); }
   #cat { display:none; }
@@ -56,12 +66,12 @@
   #face .emoji, .clone .cface .emoji { font-size:3.2rem; line-height:1; display:flex; align-items:center;
     justify-content:center; width:100%; height:100%; }
   #cat.hit { opacity:.3; }
-  #cat.angry #face { animation:shake .12s linear infinite; }
+  #cat.angry #face, #cat.threat #face { animation:shake .1s linear infinite; }
   @keyframes shake { 0%,100% { transform:translateX(-6px); } 50% { transform:translateX(6px); } }
   #bubble { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:6px;
     display:none; white-space:nowrap; background:var(--bg); color:var(--fg); border:2px solid var(--fg);
     padding:4px 10px; font-size:.85rem; font-weight:700; pointer-events:none; }
-  #cat.angry #bubble, #cat.gun #bubble, #cat.cake #bubble { display:block; }
+  #cat.angry #bubble, #cat.gun #bubble, #cat.cake #bubble, #cat.threat #bubble { display:block; }
 
   /* 보스 체력 / 케이크 */
   #hp { position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:4px; display:none;
@@ -81,6 +91,12 @@
   #cat.held #face { animation:float .6s ease-in-out infinite alternate; }
   @keyframes float { from { transform:translateY(0); } to { transform:translateY(-8px); } }
   #cat.held #bubble { display:block; bottom:auto; top:100%; margin:6px 0 0; }
+
+  /* gun 협박 (상점 gun 사용) */
+  #gunHand { position:absolute; left:-34px; top:25%; width:92px; height:92px; display:none; pointer-events:none; z-index:6; }
+  #gunHand img { width:100%; height:100%; object-fit:contain; display:block; }
+  #gunHand .emoji { font-size:3rem; display:flex; justify-content:center; align-items:center; height:100%; }
+  #cat.threat #gunHand { display:block; }
 
   /* 시작/종료 화면 */
   #overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column;
@@ -105,6 +121,17 @@
   #rank td { padding:4px 6px; border-bottom:1px solid var(--fg); }
   #rank .note { margin-top:6px; font-size:.8rem; text-align:center; }
 
+  /* 뉴스 (게임 박스 아래) */
+  #news { width:100%; max-width:560px; display:flex; align-items:center; gap:8px; margin-top:8px; }
+  #newsPic { width:120px; flex:none; }
+  #newsPic img { width:100%; height:auto; display:block; }
+  #newsPic .emoji { font-size:2.6rem; display:block; text-align:center; }
+  #newsBox { flex:1; min-width:0; background:var(--bg); color:var(--fg); border:1px solid var(--fg);
+    padding:5px 8px; font-weight:700; font-size:.9rem; line-height:1.4; }
+  #newsBox.flash { animation:flash .35s 3; }
+  @keyframes flash { 0%,100% { box-shadow:none; } 50% { box-shadow:0 0 0 3px #ffb300; } }
+  #newsBadge { margin-left:6px; font-weight:900; }
+
   /* 퀘스트 두루마리 */
   #quest { position:fixed; top:8px; left:8px; z-index:20; width:290px; }
   #questIcon { width:44px; height:44px; cursor:pointer; display:block; }
@@ -124,11 +151,10 @@
   #toast { position:fixed; right:8px; bottom:78px; z-index:60; max-width:260px; display:none;
     padding:8px 12px; background:var(--card); font-weight:700; font-size:.9rem; line-height:1.5; }
 
-  /* 3초간 시작하지 않으면 나타나는 사진 (코드창 바로 위) */
-  #idle { position:fixed; right:8px; bottom:76px; z-index:15; width:180px; max-width:40vw;
-    display:none; pointer-events:none; }
+  /* 3초간 시작하지 않으면 나타나는 사진 (오른쪽 위) */
+  #idle { position:fixed; right:8px; top:8px; z-index:15; width:64px; display:none; pointer-events:none; }
   #idle img { width:100%; height:auto; display:block; border:2px solid var(--fg); }
-  #idle .emoji { font-size:3rem; display:block; text-align:center; }
+  #idle .emoji { font-size:2.4rem; display:block; text-align:center; }
 
   /* 나무 (tree 코드) */
   #tree { display:none; margin-top:12px; }
@@ -144,12 +170,22 @@
   #devMsg { margin-top:8px; padding:8px 12px; background:var(--bg); color:var(--fg);
     border:2px solid var(--fg); font-weight:700; font-size:.95rem; line-height:1.5; }
 
-  /* 팝 캣 (popcat 코드) */
-  #pop { position:fixed; left:8px; bottom:8px; z-index:18; display:none; width:150px; text-align:center;
-    cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+  /* 팝 캣 + 상점 (popcat 코드) */
+  #dock { position:fixed; left:8px; bottom:8px; z-index:18; display:none; align-items:flex-end; gap:8px; }
+  #dock.open { display:flex; }
+  #pop { width:100px; text-align:center; cursor:pointer; touch-action:manipulation;
+    -webkit-user-select:none; user-select:none; }
   #pop img { width:100%; height:auto; display:block; pointer-events:none; }
-  #popFace { font-size:5rem; line-height:1.2; }
-  #pop .popCnt { font-weight:900; font-size:1.2rem; background:var(--card); padding:2px 8px; margin-top:4px; }
+  #popFace { font-size:3.5rem; line-height:1.2; }
+  #pop .popCnt { font-weight:900; font-size:1rem; background:var(--card); padding:3px 6px; margin-top:4px; }
+  #shop { display:flex; gap:8px; align-items:flex-end; }
+  .sitem { width:80px; text-align:center; }
+  .sitem .price, .sitem .sname { background:var(--card); font-weight:700; font-size:.85rem; padding:3px 4px; }
+  .sitem .spic { background:var(--card); height:74px; display:flex; align-items:center; justify-content:center; margin:2px 0; }
+  .sitem .spic img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .sitem .spic .emoji { font-size:2rem; }
+  .sacts { display:flex; gap:2px; margin-top:3px; }
+  .sacts button { flex:1; padding:6px 0; font-size:.78rem; min-height:32px; }
 
   /* 캣굴 (catgle 코드) - 구글 첫 화면처럼. 다크 모드에서도 흰 배경 */
   #catgle { position:fixed; top:0; left:0; right:0; bottom:0; z-index:50; display:none; overflow:auto;
@@ -189,6 +225,28 @@
   #cgPage.results #cgLogoBox img { width:100px; }
   #cgPage.results #cgBar { flex:1 1 260px; max-width:584px; width:auto; }
   #cgPage.results #cgBtns { display:none; }
+
+  /* 폰 / 좁은 화면: 코드창을 맨 아래 전체 폭으로, 상점은 그 위로 */
+  @media (max-width: 640px) {
+    body { padding:10px 10px 76px; }
+    body.dockOpen { padding-bottom:215px; }
+    #code { left:0; right:0; bottom:0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); }
+    #codeInput { flex:1; width:auto; min-width:0; }
+    #dock { left:4px; bottom:calc(68px + env(safe-area-inset-bottom)); gap:4px; }
+    #pop { width:76px; }
+    #pop .popCnt { font-size:.85rem; }
+    #shop { gap:4px; }
+    .sitem { width:66px; }
+    .sitem .price, .sitem .sname { font-size:.72rem; }
+    .sitem .spic { height:54px; }
+    .sacts button { font-size:.72rem; min-height:34px; }
+    #toast { left:8px; right:8px; max-width:none; bottom:calc(74px + env(safe-area-inset-bottom)); }
+    body.dockOpen #toast { bottom:215px; }
+    #newsPic { width:92px; }
+    #newsBox { font-size:.82rem; }
+    #idle { width:52px; }
+    #quest { width:calc(100vw - 16px); }
+  }
 </style>
 </head>
 <body>
@@ -203,7 +261,8 @@
       고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
       고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
       보스 고양이가 나타난 횟수: <span id="bossCount">0</span>번 (확률 0.1%)<br>
-      고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)
+      고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)<br>
+      뉴스 속보가 나온 횟수: <span id="newsCount">0</span>번 (현재 확률 <span id="newsRate">7</span>%)
     </div>
   </div>
 
@@ -213,11 +272,12 @@
     <div>score <span id="score">0</span></div>
     <div>best <span id="best">0</span></div>
   </div>
+  <div id="boost"><div id="boostFill"></div><span id="boostTxt"></span></div>
   <div id="field">
-    <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="hp"></div><div id="cake">🎂</div></div>
+    <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="gunHand"></div><div id="hp"></div><div id="cake">🎂</div></div>
     <div id="overlay">
       <div class="box">
-        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
         <div class="nick">
           <label for="nick">닉네임</label>
           <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
@@ -232,12 +292,34 @@
       </div>
     </div>
   </div>
+
+  <div id="news">
+    <div id="newsPic"></div>
+    <div id="newsBox"><span id="newsText">속보 대기 중...</span><span id="newsBadge"></span></div>
+  </div>
+
   <div id="tree"></div>
 
-  <div id="pop">
-    <img id="popImg" alt="팝 캣" draggable="false">
-    <div id="popFace" style="display:none">😺</div>
-    <div class="popCnt">pop <span id="popCount">0</span></div>
+  <div id="dock">
+    <div id="pop">
+      <img id="popImg" alt="팝 캣" draggable="false">
+      <div id="popFace" style="display:none">😺</div>
+      <div class="popCnt">pop <span id="popCount">0</span></div>
+    </div>
+    <div id="shop">
+      <div class="sitem">
+        <div class="price">100pop</div>
+        <div class="spic" id="bustPic"></div>
+        <div class="sname">bust <span id="bustOwn">×0</span></div>
+        <div class="sacts"><button id="buyBust">구매</button><button id="useBust">사용</button></div>
+      </div>
+      <div class="sitem">
+        <div class="price">10,000pop</div>
+        <div class="spic" id="gunPic"></div>
+        <div class="sname">gun <span id="gunOwn"></span></div>
+        <div class="sacts"><button id="buyGun">구매</button><button id="useGun">사용</button></div>
+      </div>
+    </div>
   </div>
 
   <div id="dev"><div id="devPic"></div><div id="devMsg"></div></div>
@@ -283,7 +365,12 @@
   const DEV_IMG = '개발자.jpg';                             // 개발자 고양이 (code 코드)
   const POP_OPEN_IMG = '입열은pop.jpg';                     // 팝 캣 입 연 모습 (popcat 코드)
   const POP_CLOSED_IMG = '입다문pop.png';                   // 팝 캣 입 다문 모습
-  const BGM_FILE = 'bgm.mp3';   // 노래 파일 (없으면 소리 없이 진행)
+  // 아래 목록은 앞에서부터 순서대로 시도함 (파일 이름이 조금 달라도 이어서 찾음)
+  const NEWS_IMGS = ['newscat.jpg'];
+  const BUST_IMGS = ['몬스터주는고양이-removebg-preview__1_.png', '몬스터주는고양이-removebg-preview (1).png',
+                     '몬스터주는고양이-removebg-preview.png'];
+  const GUNITEM_IMGS = ['a3c1506705b1937665205031001bd09c-removebg-preview.png'];
+  const BGM_FILES = ['zec53-piano-and-strings-ambient-confident-and-light-full-633882.mp3', 'bgm.mp3'];
   const BGM_VOLUME = 0.4;       // 0~1
 
   // 캣굴 검색어 → 비밀 코드. 한 덩어리씩 추가하면 검색어가 늘어남 (검색어는 소문자로)
@@ -293,14 +380,14 @@
       url: 'catgle.cat › secret › cake',
       desc: '검색어 "cat"과 관련된 비밀 코드를 찾았습니다.',
       code: 'catke',
-      tip: '게임 중에 코드창에 입력해 보십시오.'
+      tip: '게임 중에 코드창에 입력해 보십시오. 한 판에 한 번만 받을 수 있습니다.'
     },
     'pop': {
       title: '팝 캣 - 입을 뻐끔거리는 고양이',
       url: 'catgle.cat › secret › pop',
       desc: '검색어 "pop"과 관련된 비밀 코드를 찾았습니다.',
       code: 'popcat',
-      tip: '코드창에 입력한 뒤 나타난 고양이를 눌러 보십시오.'
+      tip: '코드창에 입력한 뒤 팝 캣을 눌러 pop을 모으고, 상점에서 아이템을 구매해 보십시오.'
     },
     'bug': {
       title: '개발자 고양이를 부르는 방법',
@@ -328,12 +415,30 @@
     '오늘의 운세: 총알을 조심하십시오.'
   ];
 
+  // 뉴스 헤드라인 (좋은 뉴스 +3점 / 나쁜 뉴스 -1점)
+  const NEWS_GOOD = [
+    '아나바 식품 현재 130%',
+    '속보: 고양이 사료 가격이 대폭 하락했습니다',
+    '속보: 전국 집사들의 월급이 인상되었습니다',
+    '속보: 참치캔 무료 배포가 시작되었습니다',
+    '속보: 오늘의 고양이 운세 1위를 기록했습니다',
+    '속보: 캣타워 건설 지원금이 지급됩니다'
+  ];
+  const NEWS_BAD = [
+    '속보: 고양이 간식 가격이 폭등했습니다',
+    '속보: 전국에 털 날림 주의보가 발령되었습니다',
+    '속보: 아나바 식품 상장 폐지 위기',
+    '속보: 새벽 3시 우다다 경보가 발령되었습니다',
+    '속보: 캣타워 안전 점검에서 결함이 발견되었습니다',
+    '속보: 참치캔이 전량 품절되었습니다'
+  ];
+
   // 공용 랭킹 서버 (Firebase Realtime Database)
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
   const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
-  const GAME_TIME = 60;        // 제한 시간(초)
+  const GAME_TIME = 45;        // 제한 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
@@ -365,9 +470,26 @@
   const DEV_TIME = 3000;       // 개발자 고양이가 머무는 시간 (3초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
-  const RANK_MAX = 10;         // 랭킹 표시 인원
+  const RANK_MAX = 20;         // 랭킹 표시 인원
   const NICK_MAX = 10;         // 닉네임 최대 글자 수
   const NICK_CHANGES_MAX = 3;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
+
+  // 상점
+  const BUST_PRICE = 100;      // bust 가격 (pop)
+  const BOOST_TIME = 3000;     // bust 지속 시간 (3초)
+  const BOOST_MUL = 2;         // bust 적용 중 고양이를 잡을 때 얻는 점수
+  const GUN_PRICE = 10000;     // gun 가격 (pop)
+  const THREAT_SCORE = 8;      // gun으로 협박해서 얻는 점수
+  const THREAT_TIME = 2000;    // 협박 장면이 유지되는 시간 (2초)
+
+  // 뉴스
+  const NEWS_START = 0.07;     // 판이 시작할 때 뉴스 확률 (1초마다 굴림)
+  const NEWS_STEP = 0.01;      // 뉴스가 안 나올 때마다 늘어나는 확률 (1초에 1%)
+  const NEWS_RESET = 0.01;     // 뉴스가 나온 뒤 되돌아가는 확률
+  const NEWS_GOOD_RATE = 0.5;  // 좋은 뉴스일 확률
+  const NEWS_GOOD_SCORE = 3;   // 좋은 뉴스 점수
+  const NEWS_BAD_SCORE = 1;    // 나쁜 뉴스 감점
+
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
     '짜증납니다. 거절합니다.',
@@ -390,6 +512,7 @@
   const face = document.getElementById('face');
   const bubble = document.getElementById('bubble');
   const handBox = document.getElementById('hand');
+  const gunHand = document.getElementById('gunHand');
   const hpEl = document.getElementById('hp');
   const cakeEl = document.getElementById('cake');
   const overlay = document.getElementById('overlay');
@@ -397,6 +520,9 @@
   const scoreEl = document.getElementById('score');
   const timeEl = document.getElementById('time');
   const bestEl = document.getElementById('best');
+  const boostEl = document.getElementById('boost');
+  const boostFill = document.getElementById('boostFill');
+  const boostTxt = document.getElementById('boostTxt');
   const quest = document.getElementById('quest');
   const questIcon = document.getElementById('questIcon');
   const questText = document.getElementById('questText');
@@ -409,6 +535,12 @@
   const fakeCountEl = document.getElementById('fakeCount');
   const bossCountEl = document.getElementById('bossCount');
   const gunCountEl = document.getElementById('gunCount');
+  const newsCountEl = document.getElementById('newsCount');
+  const newsRateEl = document.getElementById('newsRate');
+  const newsPic = document.getElementById('newsPic');
+  const newsBox = document.getElementById('newsBox');
+  const newsText = document.getElementById('newsText');
+  const newsBadge = document.getElementById('newsBadge');
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
   const toast = document.getElementById('toast');
@@ -430,22 +562,53 @@
   const devBox = document.getElementById('dev');
   const devPic = document.getElementById('devPic');
   const devMsg = document.getElementById('devMsg');
+  const dock = document.getElementById('dock');
   const popBox = document.getElementById('pop');
   const popImg = document.getElementById('popImg');
   const popFace = document.getElementById('popFace');
   const popCountEl = document.getElementById('popCount');
+  const bustPic = document.getElementById('bustPic');
+  const gunPic = document.getElementById('gunPic');
+  const bustOwnEl = document.getElementById('bustOwn');
+  const gunOwnEl = document.getElementById('gunOwn');
+  const buyBustBtn = document.getElementById('buyBust');
+  const useBustBtn = document.getElementById('useBust');
+  const buyGunBtn = document.getElementById('buyGun');
+  const useGunBtn = document.getElementById('useGun');
 
   // 시작 버튼을 가장 먼저 연결 (뒤쪽 코드에 문제가 있어도 눌리도록)
   document.getElementById('start').addEventListener('click', function () { startGame(); });
 
+  // 사진 목록을 앞에서부터 차례로 시도하는 도우미 (모두 실패하면 onFail 실행)
+  function loadFirst(imgEl, list, onFail) {
+    let i = 0;
+    imgEl.draggable = false;
+    imgEl.onerror = () => {
+      i++;
+      if (i < list.length) imgEl.src = list[i];
+      else if (onFail) onFail();
+    };
+    imgEl.src = list[0];
+  }
+
   // ---------- 음악 ----------
-  let bgm = null;
-  try {
-    bgm = new Audio(BGM_FILE);
-    bgm.loop = true;
-    bgm.volume = BGM_VOLUME;
-  } catch (e) { bgm = null; }
   let muted = false;
+  let bgm = null, bgmIdx = 0;
+  function makeBgm() {
+    try {
+      bgm = new Audio(BGM_FILES[bgmIdx]);
+      bgm.loop = true;
+      bgm.volume = BGM_VOLUME;
+      bgm.addEventListener('error', () => {
+        if (bgmIdx < BGM_FILES.length - 1) {
+          bgmIdx++;
+          makeBgm();
+          if (playing && !muted) playBgm(true);
+        }
+      });
+    } catch (e) { bgm = null; }
+  }
+  makeBgm();
   function playBgm(reset) {
     if (muted || !bgm) return;
     try { if (reset) bgm.currentTime = 0; } catch (e) {}
@@ -492,6 +655,23 @@
   dimg.draggable = false;
   dimg.onerror = () => { devPic.innerHTML = '<span style="font-size:5rem">🙀</span>'; };
   devPic.appendChild(dimg);
+
+  // 뉴스 사진 / 상점 사진 / 협박 사진
+  const nimg = new Image();
+  loadFirst(nimg, NEWS_IMGS, () => { newsPic.innerHTML = '<span class="emoji">📰</span>'; });
+  newsPic.appendChild(nimg);
+
+  const bimg = new Image();
+  loadFirst(bimg, BUST_IMGS, () => { bustPic.innerHTML = '<span class="emoji">🥫</span>'; });
+  bustPic.appendChild(bimg);
+
+  const gimg = new Image();
+  loadFirst(gimg, GUNITEM_IMGS, () => { gunPic.innerHTML = '<span class="emoji">🔫</span>'; });
+  gunPic.appendChild(gimg);
+
+  const ghimg = new Image();
+  loadFirst(ghimg, GUNITEM_IMGS, () => { gunHand.innerHTML = '<span class="emoji">🔫</span>'; });
+  gunHand.appendChild(ghimg);
 
   // 캣굴 로고 넣기 (실패하면 글자 로고)
   const limg = new Image();
@@ -552,9 +732,12 @@
 
   let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
   let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
-  let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0;
+  let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0, newsCount = 0;
   let refusing = false, held = false, sleeping = false;
   let bossActive = false, bossHp = 0, cakeMode = false, cakeSized = false;
+  let cakeUsed = false, gunUsed = false;       // 한 판에 한 번만 쓸 수 있는 것들
+  let boostActive = false, boostEnd = 0, boostTimer = null, boostTick = null;
+  let newsChance = NEWS_START, newsTimer = null, newsBadgeTimer = null;
   let unlimited = false, usedInf = false;
   let clones = [];
   // 억까 효과 상태
@@ -880,10 +1063,26 @@
   cgClose.addEventListener('click', closeCatgle);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCatgle(); });
 
-  // ---------- 팝 캣 (popcat 코드): 누르면 입이 열리고 뽁 소리가 남 ----------
+  // ---------- 팝 캣 + 상점 (popcat 코드) ----------
   let popCount = 0;
   try { popCount = parseInt(localStorage.getItem('catPop')) || 0; } catch (e) {}
-  popCountEl.textContent = popCount;
+  let own = { bust: 0, gun: false };
+  try {
+    const o = JSON.parse(localStorage.getItem('catOwn'));
+    if (o && typeof o === 'object') { own.bust = Math.max(0, parseInt(o.bust) || 0); own.gun = !!o.gun; }
+  } catch (e) {}
+  function savePop() { try { localStorage.setItem('catPop', String(popCount)); } catch (e) {} }
+  function saveOwn() { try { localStorage.setItem('catOwn', JSON.stringify(own)); } catch (e) {} }
+
+  function renderShop() {
+    popCountEl.textContent = popCount;
+    bustOwnEl.textContent = '×' + own.bust;
+    gunOwnEl.textContent = own.gun ? '보유' : '';
+    buyGunBtn.textContent = own.gun ? '보유중' : '구매';
+    buyGunBtn.disabled = own.gun;
+    useGunBtn.textContent = (playing && gunUsed) ? '사용됨' : '사용';
+  }
+  renderShop();
 
   let popOk = true;
   popImg.onerror = () => {
@@ -923,11 +1122,12 @@
     } catch (e) {}
   }
 
+  // 팝 캣을 누를 때마다 pop 1개
   popBox.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     popCount++;
     popCountEl.textContent = popCount;
-    try { localStorage.setItem('catPop', String(popCount)); } catch (x) {}
+    savePop();
     setPop(true);
     popSound();
   });
@@ -936,10 +1136,126 @@
   });
 
   function togglePop() {
-    const on = popBox.style.display !== 'block';
-    popBox.style.display = on ? 'block' : 'none';
+    const on = !dock.classList.contains('open');
+    dock.classList.toggle('open', on);
+    document.body.classList.toggle('dockOpen', on);
     setPop(false);
-    showToast(on ? '팝 캣이 나타났습니다. 눌러 보십시오.' : '팝 캣이 사라졌습니다.');
+    renderShop();
+    showToast(on ? '팝 캣과 상점이 나타났습니다.' : '팝 캣과 상점이 사라졌습니다.');
+  }
+
+  function buyItem(id) {
+    if (id === 'gun' && own.gun) { showToast('gun은 이미 보유 중입니다.'); return; }
+    const price = id === 'gun' ? GUN_PRICE : BUST_PRICE;
+    if (popCount < price) {
+      showToast('pop이 부족합니다. (필요 ' + price.toLocaleString() + ' / 보유 ' + popCount.toLocaleString() + ')');
+      return;
+    }
+    popCount -= price;
+    if (id === 'gun') own.gun = true; else own.bust++;
+    savePop(); saveOwn(); renderShop();
+    showToast(id + ' 구매가 완료되었습니다.');
+  }
+
+  // ---------- bust: 3초 동안 1점이 2점으로 ----------
+  function updateBoostText() {
+    const left = Math.max(0, boostEnd - Date.now());
+    boostTxt.textContent = 'BUST  1점 → ' + BOOST_MUL + '점  ' + (left / 1000).toFixed(1) + '초';
+  }
+  function startBoost() {
+    boostActive = true;
+    boostEnd = Date.now() + BOOST_TIME;
+    boostEl.classList.add('on');
+    field.classList.add('boosted');
+    boostFill.style.transition = 'none';
+    boostFill.style.width = '100%';
+    void boostFill.offsetWidth; // 애니메이션 초기화
+    boostFill.style.transition = 'width ' + BOOST_TIME + 'ms linear';
+    boostFill.style.width = '0%';
+    clearInterval(boostTick);
+    boostTick = setInterval(updateBoostText, 100);
+    updateBoostText();
+    clearTimeout(boostTimer);
+    boostTimer = setTimeout(stopBoost, BOOST_TIME);
+  }
+  function stopBoost() {
+    boostActive = false;
+    clearInterval(boostTick);
+    clearTimeout(boostTimer);
+    boostEl.classList.remove('on');
+    field.classList.remove('boosted');
+  }
+
+  function useBust() {
+    if (!playing) { showToast('bust는 게임 중에만 사용할 수 있습니다.'); return; }
+    if (own.bust <= 0) { showToast('보유한 bust가 없습니다. 상점에서 구매하십시오.'); return; }
+    if (boostActive) { showToast('이미 bust가 적용 중입니다.'); return; }
+    own.bust--; saveOwn(); renderShop();
+    startBoost();
+    showToast('bust 적용: ' + (BOOST_TIME / 1000) + '초간 1점이 ' + BOOST_MUL + '점이 됩니다.');
+  }
+
+  // ---------- gun: 고양이를 협박해서 8점 (한 판에 한 번) ----------
+  function useGun() {
+    if (!playing) { showToast('gun은 게임 중에만 사용할 수 있습니다.'); return; }
+    if (!own.gun) { showToast('gun을 먼저 구매해야 합니다.'); return; }
+    if (gunUsed) { showToast('gun은 한 판에 한 번만 사용할 수 있습니다.'); return; }
+    if (bossActive || held || cakeMode) { showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.'); return; }
+    gunUsed = true;
+    renderShop();
+    threatCat();
+  }
+
+  function threatCat() {
+    clearTimeout(moveTimer);
+    clearClones();
+    escaped = false; refusing = false; sleeping = false; cakeMode = false;
+    held = true; // 협박 중에는 클릭 무시
+    cat.classList.remove('hit', 'angry', 'held', 'cake', 'gun', 'boss');
+    showAngryFace(false);
+    cakeEl.textContent = '';
+    placeEl(cat);
+    cat.style.display = 'block';
+    cat.classList.add('threat', 'color');
+    score += THREAT_SCORE;
+    scoreEl.textContent = score;
+    bubble.textContent = '살려 주십시오. +' + THREAT_SCORE;
+    moveTimer = setTimeout(moveCat, THREAT_TIME);
+  }
+
+  buyBustBtn.addEventListener('click', () => buyItem('bust'));
+  useBustBtn.addEventListener('click', useBust);
+  buyGunBtn.addEventListener('click', () => buyItem('gun'));
+  useGunBtn.addEventListener('click', useGun);
+
+  // ---------- 뉴스 (1초마다 확률을 굴림) ----------
+  function showNews() {
+    newsCount++;
+    newsCountEl.textContent = newsCount;
+    const good = Math.random() < NEWS_GOOD_RATE;
+    const list = good ? NEWS_GOOD : NEWS_BAD;
+    newsText.textContent = list[Math.floor(Math.random() * list.length)];
+    const d = good ? NEWS_GOOD_SCORE : -NEWS_BAD_SCORE;
+    score = Math.max(0, score + d);
+    scoreEl.textContent = score;
+    newsBadge.textContent = (d > 0 ? '+' : '') + d;
+    newsBadge.style.color = good ? '#1b8a2d' : '#d00';
+    clearTimeout(newsBadgeTimer);
+    newsBadgeTimer = setTimeout(() => { newsBadge.textContent = ''; }, 4000);
+    newsBox.classList.remove('flash');
+    void newsBox.offsetWidth;
+    newsBox.classList.add('flash');
+  }
+
+  function newsTick() {
+    if (!playing) return;
+    if (Math.random() < newsChance) {
+      showNews();
+      newsChance = NEWS_RESET;            // 뉴스가 뜨면 확률을 다시 1%로
+    } else {
+      newsChance = Math.min(1, newsChance + NEWS_STEP); // 안 뜰 때마다 1%씩 증가
+    }
+    newsRateEl.textContent = Math.round(newsChance * 100);
   }
 
   // 일정 시간 동안만 켜지는 효과 (같은 효과를 다시 받으면 시간 갱신)
@@ -1048,8 +1364,9 @@
       else openCatgle();
     } else if (v === 'catke') {
       if (!playing) showToast('케이크는 게임 중에만 받을 수 있습니다.');
+      else if (cakeUsed) showToast('케이크는 한 판에 한 번만 받을 수 있습니다.');
       else if (bossActive) showToast('보스 전투 중에는 사용할 수 없습니다.');
-      else cakeCat();
+      else { cakeUsed = true; cakeCat(); }
     } else if (v === 'code') {
       devCat();
     } else if (v === 'popcat' || v === 'pop') {
@@ -1095,12 +1412,12 @@
     return x < r.right && x + w > r.left && y < r.bottom && y + h > r.top;
   }
 
-  // 박스 밖 위치 (화면 안에서, 박스/두루마리/코드창/팝 캣을 피함)
+  // 박스 밖 위치 (화면 안에서, 박스/두루마리/코드창/상점을 피함)
   function placeOutside() {
     const r = field.getBoundingClientRect();
     const q = quest.getBoundingClientRect();
     const c = codeBox.getBoundingClientRect();
-    const p = popBox.style.display === 'block' ? popBox.getBoundingClientRect() : null;
+    const p = dock.classList.contains('open') ? dock.getBoundingClientRect() : null;
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
     const w = cat.offsetWidth, h = cat.offsetHeight;
@@ -1225,12 +1542,12 @@
     }, GUN_SHOW_TIME);
   }
 
-  // ---------- 케이크 고양이 (catke 코드) ----------
+  // ---------- 케이크 고양이 (catke 코드, 한 판에 한 번) ----------
   function cakeCat() {
     clearTimeout(moveTimer);
     clearClones();
     escaped = false; refusing = false; held = false; sleeping = false;
-    cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
+    cat.classList.remove('hit', 'angry', 'held', 'color', 'gun', 'threat');
     if (cakeOk && face.contains(img)) {
       img.src = CAKE_IMG;       // 케이크 든 고양이 사진
       cakeEl.textContent = '';
@@ -1260,7 +1577,7 @@
     bossCountEl.textContent = bossCount;
     clearClones();
     refusing = false; held = false; sleeping = false; cakeMode = false; escaped = false;
-    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake');
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'threat');
     if (bossOk && face.contains(img)) img.src = BOSS_IMG;
     cat.style.width = BOSS_W + 'px';
     cat.style.height = BOSS_H + 'px';
@@ -1306,6 +1623,8 @@
   function gunEnding(bubbleText, reason) {
     playing = false;
     stopBgm();
+    stopBoost();
+    clearInterval(newsTimer);
     clearTimeout(moveTimer);
     clearInterval(clockTimer);
     clearClones();
@@ -1318,7 +1637,7 @@
     cakeSized = false;
     gunCount++;
     gunCountEl.textContent = gunCount;
-    cat.classList.remove('hit', 'angry', 'held', 'boss', 'cake');
+    cat.classList.remove('hit', 'angry', 'held', 'boss', 'cake', 'threat');
     if (gunOk && face.contains(img)) {
       img.src = GUN_IMG;
       cat.classList.add('color');
@@ -1336,7 +1655,7 @@
     if (!playing) return;
     cakeMode = false;
     bossActive = false;
-    cat.classList.remove('cake', 'boss');
+    cat.classList.remove('cake', 'boss', 'threat');
     if (cakeSized) {            // 케이크 고양이가 끝났으면 평소 크기로 복귀
       cakeSized = false;
       const sz = tiny ? MIN_SIZE : 80;
@@ -1419,7 +1738,7 @@
     // 보스: 누를 때마다 체력 1 감소
     if (bossActive) { hitBoss(); return; }
 
-    if (refusing || held) return; // 거절 중 / 붙잡힌 중 / 가짜 총 중에는 입력 무시
+    if (refusing || held) return; // 거절 중 / 붙잡힌 중 / 협박 중 / 가짜 총 중에는 입력 무시
     clearTimeout(moveTimer);
 
     // 케이크 고양이: 누르면 보너스 점수
@@ -1458,7 +1777,7 @@
       return;
     }
 
-    score++;
+    score += boostActive ? BOOST_MUL : 1; // bust 적용 중에는 1점 대신 2점
     scoreEl.textContent = score;
     escaped = false; // 잡으면 박스 안으로 복귀
     clearClones();   // 진짜를 잡으면 분신 모두 사라짐
@@ -1495,20 +1814,32 @@
     score = 0; time = GAME_TIME; playing = true;
     escaped = false; refusing = false; held = false; sleeping = false;
     bossActive = false; cakeMode = false; cakeSized = false;
+    cakeUsed = false; gunUsed = false;            // 한 판에 한 번씩 다시 사용 가능
     usedInf = unlimited;
     escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0;
-    sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0;
+    sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0; newsCount = 0;
     clearClones();
     resetEffects();
+    stopBoost();
     scoreEl.textContent = 0; showTime();
     escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
     rotCountEl.textContent = 0; handCountEl.textContent = 0;
     sleepCountEl.textContent = 0; fakeCountEl.textContent = 0;
-    bossCountEl.textContent = 0; gunCountEl.textContent = 0;
+    bossCountEl.textContent = 0; gunCountEl.textContent = 0; newsCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
-    cat.classList.remove('angry', 'hit', 'gun', 'held', 'color', 'boss', 'cake');
+    cat.classList.remove('angry', 'hit', 'gun', 'held', 'color', 'boss', 'cake', 'threat');
     showAngryFace(false);
+    renderShop();
+
+    // 뉴스 초기화: 시작 7%, 매초 굴림
+    newsChance = NEWS_START;
+    newsRateEl.textContent = Math.round(newsChance * 100);
+    newsText.textContent = '속보 대기 중...';
+    newsBadge.textContent = '';
+    clearInterval(newsTimer);
+    newsTimer = setInterval(newsTick, 1000);
+
     playBgm(true);
     overlay.style.display = 'none';
     moveCat();
@@ -1529,13 +1860,16 @@
     cakeMode = false;
     cakeSized = false;
     stopBgm();
+    stopBoost();
+    clearInterval(newsTimer);
     clearInterval(clockTimer);
     clearTimeout(moveTimer);
     clearClones();
     resetEffects();
     cat.style.display = 'none';
-    cat.classList.remove('gun', 'angry', 'hit', 'held', 'boss', 'cake');
+    cat.classList.remove('gun', 'angry', 'hit', 'held', 'boss', 'cake', 'threat');
     showAngryFace(false);
+    renderShop();
     let extra = '';
     if (score > best) {
       best = score;
