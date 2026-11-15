@@ -294,8 +294,24 @@
       desc: '검색어 "cat"과 관련된 비밀 코드를 찾았습니다.',
       code: 'catke',
       tip: '게임 중에 코드창에 입력해 보십시오.'
+    },
+    'pop': {
+      title: '팝 캣 - 입을 뻐끔거리는 고양이',
+      url: 'catgle.cat › secret › pop',
+      desc: '검색어 "pop"과 관련된 비밀 코드를 찾았습니다.',
+      code: 'popcat',
+      tip: '코드창에 입력한 뒤 나타난 고양이를 눌러 보십시오.'
+    },
+    'bug': {
+      title: '개발자 고양이를 부르는 방법',
+      url: 'catgle.cat › secret › dev',
+      desc: '검색어 "bug"와 관련된 비밀 코드를 찾았습니다.',
+      code: 'code',
+      tip: '억까 효과가 걸렸을 때 코드창에 입력해 보십시오.'
     }
   };
+  // 같은 결과를 보여주는 다른 검색어 (한글 등)
+  const ALIASES = { '고양이': 'cat', '팝': 'pop', '버그': 'bug' };
   // 검색 결과에 같이 나오는 가짜 결과 (비밀 코드 결과 아래에 붙음)
   const FILLERS = [
     { title: '캣피디아 - 고양이 백과사전', url: 'catpedia.cat › wiki › cat',
@@ -820,7 +836,11 @@
     if (!q) return;
     cgPage.className = 'results';
     cgResult.innerHTML = '';
-    const hit = SEARCH_DB[q.toLowerCase()];
+    // 검색어 → 결과 찾기 (한글 별칭 포함, 객체 기본 속성은 제외)
+    const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    const key = q.toLowerCase();
+    const k = has(ALIASES, key) ? ALIASES[key] : key;
+    const hit = has(SEARCH_DB, k) ? SEARCH_DB[k] : null;
     if (!hit) {
       const box = document.createElement('div');
       box.className = 'nores';
