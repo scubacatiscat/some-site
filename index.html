@@ -268,7 +268,7 @@
       화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 2.5%)<br>
       신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 3.5%)<br>
       고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
-      DUM 고양이가 나타난 횟수: <span id="dumCount">0</span>번 (확률 1%)<br>
+      버그 걸린 횟수: <span id="dumCount">0</span>번 (확률 1%)<br>
       고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
       냥캣이 지나간 횟수: <span id="nyanCount">0</span>번 (확률 0.3%)<br>
       보스 고양이가 나타난 횟수: <span id="bossCount">0</span>번 (확률 0.1%)<br>
@@ -288,7 +288,7 @@
     <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="gunHand"></div><div id="hp"></div><div id="cake">🎂</div></div>
     <div id="overlay">
       <div class="box">
-        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
         <div class="nick">
           <label for="nick">닉네임</label>
           <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
@@ -324,7 +324,7 @@
     </div>
     <div id="shop">
       <div class="sitem">
-        <div class="price">100pop</div>
+        <div class="price">300pop</div>
         <div class="spic" id="bustPic"></div>
         <div class="sname">bust <span id="bustOwn">×0</span></div>
         <div class="sacts"><button id="buyBust">구매</button><button id="useBust">사용</button></div>
@@ -459,7 +459,7 @@
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
   const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
-  const GAME_TIME = 45;        // 제한 시간(초)
+  const GAME_TIME = 60;        // 제한 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
@@ -488,11 +488,11 @@
   const CAKE_SCORE = 3;        // 케이크 고양이를 눌렀을 때 점수
   const CAKE_TIME = 4000;      // 케이크 고양이가 머무는 시간 (4초)
   const CAKE_W = 130, CAKE_H = 124; // 케이크 고양이 크기
-  const DEV_TIME = 3000;       // 개발자 고양이가 머무는 시간 (3초)
+  const DEV_TIME = 2000;       // 개발자 고양이가 머무는 시간 (2초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
   const NICK_MAX = 10;         // 닉네임 최대 글자 수
-  const NICK_CHANGES_MAX = 3;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
+  const NICK_CHANGES_MAX = 5;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
 
   // DUM 고양이 / 냥캣
   const DUM_CHANCE = 0.01;     // DUM 고양이 확률 1% (이동 1회당)
@@ -504,14 +504,14 @@
   const NYAN_TIME = 3200;      // 냥캣이 화면을 지나가는 시간 (3.2초)
 
   // 상점 / 팝 캣
-  const BUST_PRICE = 100;      // bust 가격 (pop)
-  const BOOST_TIME = 3000;     // bust 지속 시간 (3초)
-  const BOOST_MUL = 2;         // bust 적용 중 고양이를 잡을 때 얻는 점수
+  const BUST_PRICE = 300;      // bust 가격 (pop)
+  const BOOST_TIME = 5000;     // bust 지속 시간 (5초)
+  const BOOST_MUL = 3;         // bust 적용 중 고양이를 잡을 때 얻는 점수
   const GUN_PRICE = 10000;     // gun 가격 (pop)
   const THREAT_SCORE = 8;      // gun으로 협박해서 얻는 점수
   const THREAT_TIME = 2000;    // 협박 장면이 유지되는 시간 (2초)
   const POP_MAX_LV = 5;        // 팝 캣 최대 레벨 (최대 레벨에서 한 번에 +5)
-  const POP_UP_COST = [100, 400, 1500, 5000]; // Lv1→2, 2→3, 3→4, 4→5 업그레이드 비용 (pop)
+  const POP_UP_COST = [100, 400, 900, 2500]; // Lv1→2, 2→3, 3→4, 4→5 업그레이드 비용 (pop)
   const POP_SUBMIT_DELAY = 6000; // 마지막으로 누른 뒤 pop 랭킹에 올리기까지 기다리는 시간
 
   // 뉴스
