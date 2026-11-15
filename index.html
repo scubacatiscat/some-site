@@ -136,6 +136,21 @@
     mix-blend-mode:multiply; }
   @media (prefers-color-scheme: dark) { #tree img { mix-blend-mode:normal; } }
 
+  /* 개발자 고양이 (code 코드) */
+  #dev { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:55; display:none;
+    text-align:center; pointer-events:none; width:280px; max-width:80vw; }
+  #devPic img { width:100%; height:auto; display:block; border:3px solid var(--fg);
+    animation:shake .1s linear infinite; }
+  #devMsg { margin-top:8px; padding:8px 12px; background:var(--bg); color:var(--fg);
+    border:2px solid var(--fg); font-weight:700; font-size:.95rem; line-height:1.5; }
+
+  /* 팝 캣 (popcat 코드) */
+  #pop { position:fixed; left:8px; bottom:8px; z-index:18; display:none; width:150px; text-align:center;
+    cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+  #pop img { width:100%; height:auto; display:block; pointer-events:none; }
+  #popFace { font-size:5rem; line-height:1.2; }
+  #pop .popCnt { font-weight:900; font-size:1.2rem; background:var(--card); padding:2px 8px; margin-top:4px; }
+
   /* 캣굴 (catgle 코드) - 구글 첫 화면처럼. 다크 모드에서도 흰 배경 */
   #catgle { position:fixed; top:0; left:0; right:0; bottom:0; z-index:50; display:none; overflow:auto;
     background:#fff; color:#202124; font-family:Arial,"Malgun Gothic",sans-serif;
@@ -219,6 +234,14 @@
   </div>
   <div id="tree"></div>
 
+  <div id="pop">
+    <img id="popImg" alt="팝 캣" draggable="false">
+    <div id="popFace" style="display:none">😺</div>
+    <div class="popCnt">pop <span id="popCount">0</span></div>
+  </div>
+
+  <div id="dev"><div id="devPic"></div><div id="devMsg"></div></div>
+
   <div id="catgle">
     <button id="cgClose" aria-label="닫기">✕</button>
     <div id="cgPage" class="home">
@@ -256,6 +279,10 @@
   const QUEST_IMG = '퀘스트롤픽셀.jpg';
   const IDLE_IMG = '7cbde4666ebcf9b984b0203edfb2aa5d.jpg'; // 3초간 시작하지 않으면 나오는 사진
   const CATGLE_IMG = 'catgle.png';                         // 캣굴 로고
+  const CAKE_IMG = 'catke-removebg-preview.png';           // 케이크 고양이 (catke 코드)
+  const DEV_IMG = '개발자.jpg';                             // 개발자 고양이 (code 코드)
+  const POP_OPEN_IMG = '입열은pop.jpg';                     // 팝 캣 입 연 모습 (popcat 코드)
+  const POP_CLOSED_IMG = '입다문pop.png';                   // 팝 캣 입 다문 모습
   const BGM_FILE = 'bgm.mp3';   // 노래 파일 (없으면 소리 없이 진행)
   const BGM_VOLUME = 0.4;       // 0~1
 
@@ -318,6 +345,8 @@
   const BOSS_W = 150, BOSS_H = 108; // 보스 크기
   const CAKE_SCORE = 3;        // 케이크 고양이를 눌렀을 때 점수
   const CAKE_TIME = 4000;      // 케이크 고양이가 머무는 시간 (4초)
+  const CAKE_W = 130, CAKE_H = 124; // 케이크 고양이 크기
+  const DEV_TIME = 3000;       // 개발자 고양이가 머무는 시간 (3초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
   const RANK_MAX = 10;         // 랭킹 표시 인원
@@ -382,6 +411,13 @@
   const cgLucky = document.getElementById('cgLucky');
   const cgResult = document.getElementById('cgResult');
   const cgClose = document.getElementById('cgClose');
+  const devBox = document.getElementById('dev');
+  const devPic = document.getElementById('devPic');
+  const devMsg = document.getElementById('devMsg');
+  const popBox = document.getElementById('pop');
+  const popImg = document.getElementById('popImg');
+  const popFace = document.getElementById('popFace');
+  const popCountEl = document.getElementById('popCount');
 
   // 시작 버튼을 가장 먼저 연결 (뒤쪽 코드에 문제가 있어도 눌리도록)
   document.getElementById('start').addEventListener('click', function () { startGame(); });
@@ -433,6 +469,14 @@
   iimg.onerror = () => { idleBox.innerHTML = '<span class="emoji">🔌</span>'; };
   idleBox.appendChild(iimg);
 
+  // 개발자 고양이 사진 넣기 (실패하면 이모지)
+  const dimg = new Image();
+  dimg.src = DEV_IMG;
+  dimg.alt = '개발자 고양이';
+  dimg.draggable = false;
+  dimg.onerror = () => { devPic.innerHTML = '<span style="font-size:5rem">🙀</span>'; };
+  devPic.appendChild(dimg);
+
   // 캣굴 로고 넣기 (실패하면 글자 로고)
   const limg = new Image();
   limg.src = CATGLE_IMG;
@@ -445,8 +489,8 @@
   };
   cgLogoBox.appendChild(limg);
 
-  // 화난 / 총 든 / 자는 / 보스 사진 미리 불러오기 (실패하면 평소 사진 유지)
-  let angryOk = true, gunOk = true, sleepOk = true, bossOk = true;
+  // 화난 / 총 든 / 자는 / 보스 / 케이크 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  let angryOk = true, gunOk = true, sleepOk = true, bossOk = true, cakeOk = true;
   const angryImg = new Image();
   angryImg.src = ANGRY_IMG;
   angryImg.onerror = () => { angryOk = false; };
@@ -459,6 +503,9 @@
   const bossImg = new Image();
   bossImg.src = BOSS_IMG;
   bossImg.onerror = () => { bossOk = false; };
+  const cakeImg = new Image();
+  cakeImg.src = CAKE_IMG;
+  cakeImg.onerror = () => { cakeOk = false; };
 
   function showAngryFace(on) {
     if (!face.contains(img)) return;
@@ -491,7 +538,7 @@
   let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
   let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0;
   let refusing = false, held = false, sleeping = false;
-  let bossActive = false, bossHp = 0, cakeMode = false;
+  let bossActive = false, bossHp = 0, cakeMode = false, cakeSized = false;
   let unlimited = false, usedInf = false;
   let clones = [];
   // 억까 효과 상태
@@ -499,6 +546,7 @@
   const effectTimers = {};
   let toastTimer = null;
   let idleTimer = null;
+  let devTimer = null;
   let best = 0;
   try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
   bestEl.textContent = best;
@@ -812,6 +860,68 @@
   cgClose.addEventListener('click', closeCatgle);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCatgle(); });
 
+  // ---------- 팝 캣 (popcat 코드): 누르면 입이 열리고 뽁 소리가 남 ----------
+  let popCount = 0;
+  try { popCount = parseInt(localStorage.getItem('catPop')) || 0; } catch (e) {}
+  popCountEl.textContent = popCount;
+
+  let popOk = true;
+  popImg.onerror = () => {
+    popOk = false;
+    popImg.style.display = 'none';
+    popFace.style.display = 'block';
+  };
+  popImg.src = POP_CLOSED_IMG;
+  const popOpenPre = new Image();
+  popOpenPre.src = POP_OPEN_IMG; // 입 연 사진 미리 불러오기
+
+  function setPop(open) {
+    if (popOk) popImg.src = open ? POP_OPEN_IMG : POP_CLOSED_IMG;
+    else popFace.textContent = open ? '😮' : '😺';
+  }
+
+  let audioCtx = null;
+  function popSound() {
+    if (muted) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const t = audioCtx.currentTime;
+      o.type = 'sine';
+      o.frequency.setValueAtTime(700, t);
+      o.frequency.exponentialRampToValueAtTime(220, t + 0.08);
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start(t);
+      o.stop(t + 0.11);
+    } catch (e) {}
+  }
+
+  popBox.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    popCount++;
+    popCountEl.textContent = popCount;
+    try { localStorage.setItem('catPop', String(popCount)); } catch (x) {}
+    setPop(true);
+    popSound();
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => {
+    popBox.addEventListener(ev, () => setPop(false));
+  });
+
+  function togglePop() {
+    const on = popBox.style.display !== 'block';
+    popBox.style.display = on ? 'block' : 'none';
+    setPop(false);
+    showToast(on ? '팝 캣이 나타났습니다. 눌러 보십시오.' : '팝 캣이 사라졌습니다.');
+  }
+
   // 일정 시간 동안만 켜지는 효과 (같은 효과를 다시 받으면 시간 갱신)
   function timed(key, on, off, ms) {
     on();
@@ -824,6 +934,27 @@
     for (const k in effectTimers) delete effectTimers[k];
     speedMul = 1; tiny = false; refuseChance = REFUSE_CHANCE; flipped = false;
     field.classList.remove('ghost', 'flip');
+  }
+
+  // ---------- 개발자 고양이 (code 코드): 핫픽스로 억까 효과 해제 ----------
+  function devCat() {
+    let text;
+    if (playing) {
+      const wasTiny = tiny;
+      resetEffects();
+      // 크기 축소 효과가 걸려 있었다면 평소 크기로 되돌림 (다른 상태 중이 아닐 때만)
+      if (wasTiny && !bossActive && !cakeSized && !held) {
+        cat.style.width = '80px';
+        cat.style.height = '80px';
+      }
+      text = '핫픽스를 적용했습니다. 억까 효과가 모두 해제되었습니다.';
+    } else {
+      text = '고칠 버그가 없습니다. 게임을 시작해 보십시오.';
+    }
+    devMsg.textContent = text;
+    devBox.style.display = 'block';
+    clearTimeout(devTimer);
+    devTimer = setTimeout(() => { devBox.style.display = 'none'; }, DEV_TIME);
   }
 
   // 화면 회전 (코드창 효과와 자동 발동 공용)
@@ -899,6 +1030,10 @@
       if (!playing) showToast('케이크는 게임 중에만 받을 수 있습니다.');
       else if (bossActive) showToast('보스 전투 중에는 사용할 수 없습니다.');
       else cakeCat();
+    } else if (v === 'code') {
+      devCat();
+    } else if (v === 'popcat' || v === 'pop') {
+      togglePop();
     } else if (v === '의지') {
       if (playing) {
         showToast('고양이에게 의지를 얻었습니다.');
@@ -940,18 +1075,20 @@
     return x < r.right && x + w > r.left && y < r.bottom && y + h > r.top;
   }
 
-  // 박스 밖 위치 (화면 안에서, 박스/두루마리/코드창을 피함)
+  // 박스 밖 위치 (화면 안에서, 박스/두루마리/코드창/팝 캣을 피함)
   function placeOutside() {
     const r = field.getBoundingClientRect();
     const q = quest.getBoundingClientRect();
     const c = codeBox.getBoundingClientRect();
+    const p = popBox.style.display === 'block' ? popBox.getBoundingClientRect() : null;
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
     const w = cat.offsetWidth, h = cat.offsetHeight;
     for (let i = 0; i < 80; i++) {
       const x = Math.random() * Math.max(0, vw - w);
       const y = Math.random() * Math.max(0, vh - h);
-      if (!hits(x, y, w, h, r) && !hits(x, y, w, h, q) && !hits(x, y, w, h, c)) {
+      if (!hits(x, y, w, h, r) && !hits(x, y, w, h, q) && !hits(x, y, w, h, c) &&
+          !(p && hits(x, y, w, h, p))) {
         cat.style.left = (x - r.left) + 'px';
         cat.style.top = (y - r.top) + 'px';
         return;
@@ -1074,12 +1211,19 @@
     clearClones();
     escaped = false; refusing = false; held = false; sleeping = false;
     cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
-    showAngryFace(false);
-    cat.style.width = '90px';
-    cat.style.height = '90px';
+    if (cakeOk && face.contains(img)) {
+      img.src = CAKE_IMG;       // 케이크 든 고양이 사진
+      cakeEl.textContent = '';
+    } else {
+      showAngryFace(false);     // 사진이 없으면 평소 고양이 + 🎂 이모지
+      cakeEl.textContent = '🎂';
+    }
+    const w = cakeOk ? CAKE_W : 90, h = cakeOk ? CAKE_H : 90;
+    cat.style.width = w + 'px';
+    cat.style.height = h + 'px';
+    cakeSized = true;
     placeEl(cat);
     cat.style.display = 'block';
-    cakeEl.textContent = '🎂';
     cakeMode = true;
     cat.classList.add('cake', 'color');
     bubble.textContent = '케이크를 가져왔습니다.';
@@ -1151,6 +1295,7 @@
     escaped = false;
     bossActive = false;
     cakeMode = false;
+    cakeSized = false;
     gunCount++;
     gunCountEl.textContent = gunCount;
     cat.classList.remove('hit', 'angry', 'held', 'boss', 'cake');
@@ -1172,6 +1317,13 @@
     cakeMode = false;
     bossActive = false;
     cat.classList.remove('cake', 'boss');
+    if (cakeSized) {            // 케이크 고양이가 끝났으면 평소 크기로 복귀
+      cakeSized = false;
+      const sz = tiny ? MIN_SIZE : 80;
+      cat.style.width = sz + 'px';
+      cat.style.height = sz + 'px';
+    }
+    showAngryFace(false);       // 평소 사진으로 복귀
 
     // 0.12% 확률로 총 든 고양이 등장
     if (Math.random() < GUN_CHANCE) {
@@ -1215,7 +1367,6 @@
     held = false;
     sleeping = false;
     cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
-    showAngryFace(false);
 
     const cloning = clones.length > 0;
 
@@ -1323,7 +1474,7 @@
 
     score = 0; time = GAME_TIME; playing = true;
     escaped = false; refusing = false; held = false; sleeping = false;
-    bossActive = false; cakeMode = false;
+    bossActive = false; cakeMode = false; cakeSized = false;
     usedInf = unlimited;
     escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0;
     sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0;
@@ -1356,6 +1507,7 @@
     sleeping = false;
     bossActive = false;
     cakeMode = false;
+    cakeSized = false;
     stopBgm();
     clearInterval(clockTimer);
     clearTimeout(moveTimer);
