@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>catch cat Ranking</title>
+<style>
+  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; }
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0 !important; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
+    font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; }
+  header { text-align:center; }
+  h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
+  h1 .sm { font-size:1.1rem; font-weight:400; letter-spacing:0; }
+  .bar { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; font-weight:700; }
+  .bar div { background:var(--card); padding:6px 14px; }
+  .tools { display:flex; gap:8px; justify-content:center; margin-bottom:18px; }
+  .btn, button { background:var(--btn); color:var(--btn-fg); border:0; padding:10px 20px; font-size:1rem;
+    font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; touch-action:manipulation; }
+  .btn.sub, button.sub { background:transparent; color:var(--fg); border:2px solid var(--fg); padding:8px 18px; }
+  button.rep { padding:2px 8px; font-size:.75rem; border-width:1px; }
+  button:disabled { opacity:.4; cursor:default; }
+  button:active { transform:scale(.96); }
+
+  .grid { display:grid; grid-template-columns:1fr 240px 1fr; gap:20px; max-width:1100px; margin:0 auto; align-items:start; }
+  .ptitle { background:var(--card); text-align:center; font-weight:700; font-size:1.3rem; padding:18px 10px; margin-bottom:12px; }
+  .plist { background:var(--card); padding:6px 10px; min-height:60px; }
+  .plist table { width:100%; border-collapse:collapse; }
+  .plist td { padding:6px 4px; border-bottom:1px solid var(--fg); }
+  .plist td.r { width:46px; }
+  .plist td.v { text-align:right; white-space:nowrap; }
+  .plist td.b { width:52px; text-align:right; }
+  .plist .note { text-align:center; padding:10px; font-size:.85rem; }
+
+  /* 우승자 액자 */
+  #champ { text-align:center; }
+  #champ img.frame { width:100%; height:auto; display:block; }
+  .gold { padding:14px; background:linear-gradient(135deg,#f5d77a,#b8860b 45%,#f5d77a 70%,#8a6508);
+    box-shadow:0 4px 12px rgba(0,0,0,.35); }
+  .gold .inner { background:#fff; padding:12px 8px; color:#111; min-height:150px;
+    display:flex; align-items:center; justify-content:center; }
+  .gold .inner img { width:100%; height:auto; display:block; }
+  .gold .inner .big { font-size:4rem; }
+  .cap { margin-top:8px; font-weight:700; font-size:.9rem; line-height:1.5; }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns:1fr; }
+    #champ { order:-1; max-width:240px; margin:0 auto; }
+  }
+</style>
+<script>
+  window.onerror = function (m, src, line) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:9999;padding:10px;background:#b00020;color:#fff;font:14px sans-serif';
+    d.textContent = '오류: ' + m + ' (줄 ' + line + ')';
+    document.body.appendChild(d);
+  };
+</script>
+</head>
+<body>
+  <header>
+    <h1>catch cat <span class="sm">Ranking</span></h1>
+    <div class="bar">
+      <div>score <span id="lastScore">0</span></div>
+      <div>best <span id="bestScore">0</span></div>
+      <div>pop <span id="popTotal">0</span></div>
+    </div>
+    <div class="tools">
+      <a class="btn" href="index.html">게임으로</a>
+      <button class="sub" id="refresh">새로고침</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section>
+      <div class="ptitle">catch cat top 15</div>
+      <div class="plist" id="listScore"></div>
+    </section>
+
+    <div id="champ"></div>
+
+    <section>
+      <div class="ptitle">pop cat top 15</div>
+      <div class="plist" id="listPop"></div>
+    </section>
+  </div>
+
+<script>
+  // 랭킹 서버 (index.html의 DB, RANK_ROOT와 항상 같게 유지할 것)
+  const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
+  const RANK_ROOT = 'ranks/s2';
+  const REPORT_LIMIT = 3;   // 이 인원 이상이 신고하면 숨김
+  const RANK_MAX = 15;      // 표시 인원
+
+  // 우승자 액자
+  const FRAME_IMG = 'frame.png';          // 액자 그림이 있으면 이 파일을 그대로 보여줌
+  const CHAMP_IMG = 'champion.png';       // 기본 액자 안에 넣을 그림 (없으면 🏆)
+  const CHAMP_TITLE = '1대 catch cat 우승자';
+  const CHAMP_NAME = '';                  // 우승자 닉네임을 여기에 적으십시오
+
+  let cid = '';
+  try { cid = localStorage.getItem('catCid') || ''; } catch (e) {}
+  let reported = {};
+  try { reported = JSON.parse(localStorage.getItem('catReportedV2')) || {}; } catch (e) {}
+
+  function num(k) { try { return parseInt(localStorage.getItem(k)) || 0; } catch (e) { return 0; } }
+  document.getElementById('lastScore').textContent = num('catLast').toLocaleString();
+  document.getElementById('bestScore').textContent = num('catBest').toLocaleString();
+  document.getElementById('popTotal').textContent = num('catPopTotal').toLocaleString();
+
+  async function dbGet(board) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '.json', { signal: ctrl.signal });
+      if (!r.ok) throw new Error('get ' + r.status);
+      return (await r.json()) || {};
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  function toList(obj, field) {
+    return Object.keys(obj)
+      .map(k => Object.assign({ key: k }, obj[k]))
+      .filter(e => e && typeof e.name === 'string' && typeof e[field] === 'number');
+  }
+  function repCount(e) { return e.reports ? Object.keys(e.reports).length : 0; }
+  function visibleSorted(list, field) {
+    return list.filter(e => repCount(e) < REPORT_LIMIT)
+      .sort((a, b) => b[field] - a[field] || (a.t || 0) - (b.t || 0));
+  }
+  async function reportEntry(board, key) {
+    const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '/' + key + '/reports/' + cid + '.json',
+      { method: 'PUT', body: 'true' });
+    if (!r.ok) throw new Error('report');
+  }
+
+  function note(el, text) {
+    el.innerHTML = '';
+    const d = document.createElement('div');
+    d.className = 'note';
+    d.textContent = text;
+    el.appendChild(d);
+  }
+
+  async function renderBoard(board, field, unit, el) {
+    note(el, '불러오는 중...');
+    let all;
+    try { all = toList(await dbGet(board), field); }
+    catch (e) { note(el, '랭킹 서버에 연결하지 못했습니다.'); return; }
+    const vis = visibleSorted(all, field);
+    const hidden = all.length - vis.length;
+    if (!vis.length) { note(el, '아직 기록이 없습니다.'); return; }
+
+    el.innerHTML = '';
+    const table = document.createElement('table');
+    vis.slice(0, RANK_MAX).forEach((e, i) => {
+      const tr = document.createElement('tr');
+      const mine = cid && e.cid === cid;
+      const cells = [(i + 1) + '위', e.name + (mine ? ' ◀' : ''), e[field].toLocaleString() + unit];
+      const cls = ['r', 'n', 'v'];
+      cells.forEach((t, ci) => {
+        const td = document.createElement('td');
+        td.className = cls[ci];
+        td.textContent = t; // 닉네임은 글자 그대로 표시
+        if (mine) td.style.fontWeight = '900';
+        tr.appendChild(td);
+      });
+      const tdb = document.createElement('td');
+      tdb.className = 'b';
+      if (!mine) {
+        const b = document.createElement('button');
+        b.className = 'sub rep';
+        const rkey = board + ':' + e.key;
+        if (reported[rkey] || !cid) { b.textContent = cid ? '신고함' : '신고'; b.disabled = true; }
+        else {
+          b.textContent = '신고';
+          b.addEventListener('click', async () => {
+            if (!confirm('"' + e.name + '" 기록을 신고하시겠습니까?\n부적절한 닉네임에만 사용해 주십시오.')) return;
+            b.disabled = true;
+            try {
+              await reportEntry(board, e.key);
+              reported[rkey] = 1;
+              try { localStorage.setItem('catReportedV2', JSON.stringify(reported)); } catch (x) {}
+              renderBoard(board, field, unit, el);
+            } catch (x) {
+              b.disabled = false;
+              alert('신고에 실패하였습니다. 잠시 후 다시 시도해 주십시오.');
+            }
+          });
+        }
+        tdb.appendChild(b);
+      }
+      tr.appendChild(tdb);
+      table.appendChild(tr);
+    });
+    el.appendChild(table);
+    if (hidden > 0) {
+      const n = document.createElement('div');
+      n.className = 'note';
+      n.textContent = '신고 누적으로 숨겨진 기록: ' + hidden + '건';
+      el.appendChild(n);
+    }
+  }
+
+  // 우승자 액자: frame.png가 있으면 그대로, 없으면 금색 액자
+  function buildChamp() {
+    const champ = document.getElementById('champ');
+    const fi = new Image();
+    fi.className = 'frame';
+    fi.alt = CHAMP_TITLE;
+    fi.onload = () => { champ.innerHTML = ''; champ.appendChild(fi); };
+    fi.onerror = () => {
+      champ.innerHTML = '<div class="gold"><div class="inner" id="cInner"></div></div><div class="cap" id="cCap"></div>';
+      const inner = document.getElementById('cInner');
+      const ci = new Image();
+      ci.alt = '우승자';
+      ci.onload = () => { inner.innerHTML = ''; inner.appendChild(ci); };
+      ci.onerror = () => { inner.innerHTML = '<div class="big">🏆</div>'; };
+      inner.innerHTML = '<div class="big">🏆</div>';
+      ci.src = CHAMP_IMG;
+      const cap = document.getElementById('cCap');
+      const t = document.createElement('div'); t.textContent = CHAMP_TITLE; cap.appendChild(t);
+      if (CHAMP_NAME) { const n = document.createElement('div'); n.textContent = CHAMP_NAME; cap.appendChild(n); }
+    };
+    fi.src = FRAME_IMG;
+  }
+
+  function loadAll() {
+    renderBoard('score', 'score', '점', document.getElementById('listScore'));
+    renderBoard('pop', 'pop', ' pop', document.getElementById('listPop'));
+  }
+  document.getElementById('refresh').addEventListener('click', loadAll);
+
+  buildChamp();
+  loadAll();
+</script>
+</body>
+</html>
