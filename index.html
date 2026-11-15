@@ -268,7 +268,7 @@
 
   <h1>catch cat</h1>
   <div class="bar">
-    <div>time <span id="time">45</span></div>
+    <div>time <span id="time">60</span></div>
     <div>score <span id="score">0</span></div>
     <div>best <span id="best">0</span></div>
   </div>
@@ -277,7 +277,7 @@
     <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="gunHand"></div><div id="hp"></div><div id="cake">🎂</div></div>
     <div id="overlay">
       <div class="box">
-        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 45초입니다.</p>
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
         <div class="nick">
           <label for="nick">닉네임</label>
           <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
@@ -417,7 +417,7 @@
 
   // 뉴스 헤드라인 (좋은 뉴스 +3점 / 나쁜 뉴스 -1점)
   const NEWS_GOOD = [
-    '아나바 식품 현재 130%',
+    '속보: 아나바 식품 현재 130%',
     '속보: 고양이 사료 가격이 대폭 하락했습니다',
     '속보: 전국 집사들의 월급이 인상되었습니다',
     '속보: 참치캔 무료 배포가 시작되었습니다',
@@ -425,7 +425,7 @@
     '속보: 캣타워 건설 지원금이 지급됩니다'
   ];
   const NEWS_BAD = [
-    '속보: 고양이 간식 가격이 폭등했습니다',
+    '속보: 고양이 간식에 강아지털이 발견되어 조사...',
     '속보: 전국에 털 날림 주의보가 발령되었습니다',
     '속보: 아나바 식품 상장 폐지 위기',
     '속보: 새벽 3시 우다다 경보가 발령되었습니다',
@@ -438,7 +438,7 @@
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
   const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
-  const GAME_TIME = 45;        // 제한 시간(초)
+  const GAME_TIME = 60;        // 제한 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
@@ -467,7 +467,7 @@
   const CAKE_SCORE = 3;        // 케이크 고양이를 눌렀을 때 점수
   const CAKE_TIME = 4000;      // 케이크 고양이가 머무는 시간 (4초)
   const CAKE_W = 130, CAKE_H = 124; // 케이크 고양이 크기
-  const DEV_TIME = 3000;       // 개발자 고양이가 머무는 시간 (3초)
+  const DEV_TIME = 2000;       // 개발자 고양이가 머무는 시간 (3초)
   const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
   const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
   const RANK_MAX = 20;         // 랭킹 표시 인원
@@ -486,7 +486,7 @@
   const NEWS_START = 0.07;     // 판이 시작할 때 뉴스 확률 (1초마다 굴림)
   const NEWS_STEP = 0.01;      // 뉴스가 안 나올 때마다 늘어나는 확률 (1초에 1%)
   const NEWS_RESET = 0.01;     // 뉴스가 나온 뒤 되돌아가는 확률
-  const NEWS_GOOD_RATE = 0.5;  // 좋은 뉴스일 확률
+  const NEWS_GOOD_RATE = 0.45;  // 좋은 뉴스일 확률
   const NEWS_GOOD_SCORE = 3;   // 좋은 뉴스 점수
   const NEWS_BAD_SCORE = 1;    // 나쁜 뉴스 감점
 
