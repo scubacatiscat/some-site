@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>catch cat Ranking</title>
 <style>
-  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; }
+  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; --gold:#a97c00; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; }
+    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; --gold:#ffd54f; }
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0 !important; }
   body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
@@ -33,11 +33,12 @@
   .plist td.r { width:46px; }
   .plist td.v { text-align:right; white-space:nowrap; }
   .plist td.b { width:52px; text-align:right; }
+  .plist td.goldname { color:var(--gold); font-weight:900; text-shadow:0 0 6px rgba(255,200,0,.55); }
   .plist .note { text-align:center; padding:10px; font-size:.85rem; }
 
   /* 우승자 액자 */
   #champ { text-align:center; }
-  #champ img.frame { width:100%; height:auto; display:block; }
+  #champ img.frame { width:100%; max-width:220px; height:auto; display:block; margin:0 auto; }
   .gold { padding:14px; background:linear-gradient(135deg,#f5d77a,#b8860b 45%,#f5d77a 70%,#8a6508);
     box-shadow:0 4px 12px rgba(0,0,0,.35); }
   .gold .inner { background:#fff; padding:12px 8px; color:#111; min-height:150px;
@@ -95,11 +96,11 @@
   const REPORT_LIMIT = 3;   // 이 인원 이상이 신고하면 숨김
   const RANK_MAX = 15;      // 표시 인원
 
-  // 우승자 액자
-  const FRAME_IMG = 'frame.png';          // 액자 그림이 있으면 이 파일을 그대로 보여줌
+  // 1대 우승자 액자: 아래 목록을 앞에서부터 찾음 (둘 다 없으면 금색 액자로 대신 표시)
+  const FRAME_IMGS = ['frame.png', '스크린샷_2026-11-16_164819.png'];
   const CHAMP_IMG = 'champion.png';       // 기본 액자 안에 넣을 그림 (없으면 🏆)
   const CHAMP_TITLE = '1대 catch cat 우승자';
-  const CHAMP_NAME = '';                  // 우승자 닉네임을 여기에 적으십시오
+  const CHAMP_NAME = '';                  // 기본 액자를 쓸 때 우승자 닉네임을 여기에 적으십시오
 
   let cid = '';
   try { cid = localStorage.getItem('catCid') || ''; } catch (e) {}
@@ -167,6 +168,7 @@
         td.className = cls[ci];
         td.textContent = t; // 닉네임은 글자 그대로 표시
         if (mine) td.style.fontWeight = '900';
+        if (ci === 1 && e.gold) td.className += ' goldname'; // gold2s 코드를 쓴 닉네임은 황금색
         tr.appendChild(td);
       });
       const tdb = document.createElement('td');
@@ -206,14 +208,17 @@
     }
   }
 
-  // 우승자 액자: frame.png가 있으면 그대로, 없으면 금색 액자
+  // 우승자 액자: 액자 그림이 있으면 그대로, 없으면 금색 액자
   function buildChamp() {
     const champ = document.getElementById('champ');
     const fi = new Image();
     fi.className = 'frame';
     fi.alt = CHAMP_TITLE;
+    let i = 0;
     fi.onload = () => { champ.innerHTML = ''; champ.appendChild(fi); };
     fi.onerror = () => {
+      i++;
+      if (i < FRAME_IMGS.length) { fi.src = FRAME_IMGS[i]; return; }
       champ.innerHTML = '<div class="gold"><div class="inner" id="cInner"></div></div><div class="cap" id="cCap"></div>';
       const inner = document.getElementById('cInner');
       const ci = new Image();
@@ -226,7 +231,7 @@
       const t = document.createElement('div'); t.textContent = CHAMP_TITLE; cap.appendChild(t);
       if (CHAMP_NAME) { const n = document.createElement('div'); n.textContent = CHAMP_NAME; cap.appendChild(n); }
     };
-    fi.src = FRAME_IMG;
+    fi.src = FRAME_IMGS[0];
   }
 
   function loadAll() {
