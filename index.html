@@ -3,118 +3,951 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>catch cat Ranking</title>
+<title>catch cat</title>
+<!-- 오류 안내 (구형 브라우저에서도 동작하도록 ES5로 작성) -->
+<script>
+(function () {
+  function show(msg) {
+    var d = document.getElementById('errBox');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = 'errBox';
+      d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;padding:10px 12px;' +
+        'background:#b00020;color:#fff;font:14px/1.5 sans-serif;white-space:pre-wrap;word-break:break-all';
+      (document.body || document.documentElement).appendChild(d);
+    }
+    d.textContent = msg;
+  }
+  window.onerror = function (m, src, line) {
+    show('오류가 발생했습니다.\n' + m + ' (줄 ' + line + ')\n브라우저: ' + navigator.userAgent);
+  };
+  setTimeout(function () {
+    if (!window.__catReady) {
+      show('게임을 불러오지 못했습니다. 브라우저가 너무 오래되었을 수 있습니다.\n' +
+           'Chrome 또는 Edge 최신 버전으로 열어 주십시오.\n브라우저: ' + navigator.userAgent);
+    }
+  }, 2500);
+})();
+</script>
 <style>
-  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; --gold:#a97c00; }
+  :root { --bg:#f2f2f2; --fg:#111; --card:#d9d9d9; --btn:#111; --btn-fg:#fff; --ovl:rgba(217,217,217,.9); }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; --gold:#ffd54f; }
+    :root { --bg:#111; --fg:#eee; --card:#2a2a2a; --btn:#eee; --btn-fg:#111; --ovl:rgba(42,42,42,.9); }
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; border-radius:0 !important; }
-  body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
-    font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; }
-  header { text-align:center; }
+  html, body { height:100%; margin:0; }
+  body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
+    display:flex; flex-direction:column; align-items:center; padding:16px;
+    -webkit-user-select:none; user-select:none; }
   h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
-  h1 .sm { font-size:1.1rem; font-weight:400; letter-spacing:0; }
-  .bar { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; font-weight:700; }
+  .bar { display:flex; gap:12px; margin-bottom:8px; font-weight:700; }
   .bar div { background:var(--card); padding:6px 14px; }
-  .tools { display:flex; gap:8px; justify-content:center; margin-bottom:18px; }
-  .btn, button { background:var(--btn); color:var(--btn-fg); border:0; padding:10px 20px; font-size:1rem;
-    font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; touch-action:manipulation; }
-  .btn.sub, button.sub { background:transparent; color:var(--fg); border:2px solid var(--fg); padding:8px 18px; }
-  button.rep { padding:2px 8px; font-size:.75rem; border-width:1px; }
+  .bar div.cut { background:#e53935; color:#fff; }
+
+  /* bust 적용 표시 */
+  #boost { position:relative; width:100%; max-width:560px; height:22px; margin-bottom:6px; overflow:hidden;
+    border:1px solid var(--fg); background:var(--card); visibility:hidden; }
+  #boost.on { visibility:visible; }
+  #boostFill { position:absolute; left:0; top:0; bottom:0; width:100%; background:#ffb300; }
+  #boostTxt { position:relative; display:block; text-align:center; font-weight:800; font-size:.8rem; line-height:20px;
+    color:#fff; text-shadow:0 0 3px #000, 0 0 3px #000; }
+
+  #field { position:relative; width:100%; max-width:560px; flex:1; max-height:520px; min-height:300px;
+    background:var(--card); touch-action:manipulation; transition:transform .4s; }
+  #field.flip { transform:rotate(180deg); }
+  #field.boosted { box-shadow:0 0 0 4px #ffb300, 0 0 18px #ffb300; }
+  #cat, .clone { position:absolute; width:80px; height:80px; cursor:pointer; z-index:5;
+    transition:left .12s, top .12s, opacity .12s; filter:grayscale(1); }
+  #cat { display:none; }
+  .clone { z-index:4; }
+  #cat.color { filter:none; }
+  #field.ghost #cat, #field.ghost .clone { opacity:.12; }
+  #face, .clone .cface { width:100%; height:100%; }
+  #face img, .clone .cface img { width:100%; height:100%; object-fit:fill; display:block; pointer-events:none; }
+  #face .emoji, .clone .cface .emoji { font-size:3.2rem; line-height:1; display:flex; align-items:center;
+    justify-content:center; width:100%; height:100%; }
+  #cat.hit { opacity:.3; }
+  #cat.angry #face, #cat.threat #face { animation:shake .1s linear infinite; }
+  @keyframes shake { 0%,100% { transform:translateX(-6px); } 50% { transform:translateX(6px); } }
+  #bubble { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:6px;
+    display:none; white-space:nowrap; background:var(--bg); color:var(--fg); border:2px solid var(--fg);
+    padding:4px 10px; font-size:.85rem; font-weight:700; pointer-events:none; }
+  #cat.angry #bubble, #cat.gun #bubble, #cat.cake #bubble, #cat.threat #bubble, #cat.sweat #bubble { display:block; }
+
+  /* 보스 체력 / 케이크 */
+  #hp { position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:4px; display:none;
+    white-space:nowrap; font-weight:900; font-size:1.1rem; color:#d00; pointer-events:none; }
+  #cat.boss #hp { display:block; }
+  #cake { position:absolute; left:50%; top:55%; transform:translateX(-50%); font-size:2rem; line-height:1;
+    display:none; pointer-events:none; }
+  #cat.cake #cake { display:block; }
+
+  /* 신의 손 */
+  #hand { position:absolute; left:50%; bottom:100%; width:110px; height:90px; margin-bottom:-18px;
+    transform:translateX(-50%); display:none; pointer-events:none; }
+  #hand img { width:100%; height:100%; object-fit:contain; image-rendering:pixelated; display:block; }
+  #hand .emoji { font-size:3rem; display:flex; justify-content:center; align-items:center; height:100%; }
+  #cat.held #hand { display:block; animation:drop .3s ease-out; }
+  @keyframes drop { from { transform:translate(-50%,-30px); opacity:0; } to { transform:translate(-50%,0); opacity:1; } }
+  #cat.held #face { animation:float .6s ease-in-out infinite alternate; }
+  @keyframes float { from { transform:translateY(0); } to { transform:translateY(-8px); } }
+  #cat.held #bubble { display:block; bottom:auto; top:100%; margin:6px 0 0; }
+
+  /* gun 협박 (상점 gun 사용) */
+  #gunHand { position:absolute; left:-34px; top:25%; width:92px; height:92px; display:none; pointer-events:none; z-index:6; }
+  #gunHand img { width:100%; height:100%; object-fit:contain; display:block; }
+  #gunHand .emoji { font-size:3rem; display:flex; justify-content:center; align-items:center; height:100%; }
+  #cat.threat #gunHand { display:block; }
+
+  /* UFO (느낌표 → 1.1초 뒤 UFO) */
+  #exclam { position:absolute; width:40px; display:none; z-index:7; pointer-events:none;
+    animation:bob .25s ease-in-out infinite alternate; }
+  #exclam img { width:100%; height:auto; display:block; }
+  @keyframes bob { from { transform:translateY(0); } to { transform:translateY(-6px); } }
+  #ufo { position:absolute; width:120px; display:none; z-index:7; cursor:pointer; touch-action:manipulation; }
+  #ufo img { width:100%; height:auto; display:block; pointer-events:none; }
+  #ufo.in { animation:ufoIn .25s ease-out; }
+  #ufo.tap { transform:scale(.94); }
+  @keyframes ufoIn { from { transform:translateY(-20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+
+  /* 칼 고양이: 점수 칸으로 날아감 */
+  #knife { position:fixed; display:none; z-index:45; width:90px; pointer-events:none; }
+  #knife img { width:100%; height:auto; display:block; }
+
+  /* 냥캣: 게임 박스 위를 지나가며 가림 */
+  #nyanWrap { position:fixed; display:none; overflow:hidden; pointer-events:none; z-index:40; }
+  #nyan { position:absolute; left:0; top:0; will-change:transform; }
+  #nyan img { width:100%; height:auto; display:block; }
+  #nyan .emoji { font-size:4rem; white-space:nowrap; display:block; }
+
+  /* 시작/종료 화면 */
+  #overlay { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column;
+    overflow:auto; padding:16px; z-index:10; text-align:center; background:var(--ovl); }
+  .box { margin:auto; display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
+  #overlay p { margin:0; font-size:1.1rem; line-height:1.6; }
+  .nick { display:flex; gap:8px; align-items:center; font-weight:700; flex-wrap:wrap; justify-content:center; }
+  #nick { width:150px; background:#fff; color:#000; border:2px solid var(--fg); padding:8px 10px;
+    font-size:16px; outline:none; -webkit-user-select:text; user-select:text; }
+  #nick:disabled { background:#bbb; color:#555; }
+  #nickInfo { font-size:1rem; font-weight:700; line-height:1.5; min-height:1.3em; }
+  .btns { display:flex; gap:8px; }
+  button { background:var(--btn); color:var(--btn-fg); border:0; padding:12px 28px;
+    font-size:1.1rem; font-weight:700; cursor:pointer; touch-action:manipulation; }
+  button.sub { background:transparent; color:var(--fg); border:2px solid var(--fg); padding:10px 20px; }
+  button.small { padding:8px 14px; font-size:.95rem; }
   button:disabled { opacity:.4; cursor:default; }
   button:active { transform:scale(.96); }
 
-  .grid { display:grid; grid-template-columns:1fr 240px 1fr; gap:20px; max-width:1100px; margin:0 auto; align-items:start; }
-  .ptitle { background:var(--card); text-align:center; font-weight:700; font-size:1.3rem; padding:18px 10px; margin-bottom:12px; }
-  .plist { background:var(--card); padding:6px 10px; min-height:60px; }
-  .plist table { width:100%; border-collapse:collapse; }
-  .plist td { padding:6px 4px; border-bottom:1px solid var(--fg); }
-  .plist td.r { width:46px; }
-  .plist td.v { text-align:right; white-space:nowrap; }
-  .plist td.b { width:52px; text-align:right; }
-  .plist td.goldname { color:var(--gold); font-weight:900; text-shadow:0 0 6px rgba(255,200,0,.55); }
-  .plist .note { text-align:center; padding:10px; font-size:.85rem; }
+  /* 뉴스 (게임 박스 아래) */
+  #news { width:100%; max-width:560px; display:flex; align-items:center; gap:8px; margin-top:8px; }
+  #newsPic { width:120px; flex:none; }
+  #newsPic img { width:100%; height:auto; display:block; }
+  #newsPic .emoji { font-size:2.6rem; display:block; text-align:center; }
+  #newsBox { flex:1; min-width:0; background:var(--bg); color:var(--fg); border:1px solid var(--fg);
+    padding:5px 8px; font-weight:700; font-size:.9rem; line-height:1.4; }
+  #newsBox.flash { animation:flash .35s 3; }
+  @keyframes flash { 0%,100% { box-shadow:none; } 50% { box-shadow:0 0 0 3px #ffb300; } }
+  #newsBadge { margin-left:6px; font-weight:900; }
 
-  /* 우승자 액자 */
-  #champ { text-align:center; }
-  #champ img.frame { width:100%; max-width:220px; height:auto; display:block; margin:0 auto; }
-  .gold { padding:14px; background:linear-gradient(135deg,#f5d77a,#b8860b 45%,#f5d77a 70%,#8a6508);
-    box-shadow:0 4px 12px rgba(0,0,0,.35); }
-  .gold .inner { background:#fff; padding:12px 8px; color:#111; min-height:150px;
-    display:flex; align-items:center; justify-content:center; }
-  .gold .inner img { width:100%; height:auto; display:block; }
-  .gold .inner .big { font-size:4rem; }
-  .cap { margin-top:8px; font-weight:700; font-size:.9rem; line-height:1.5; }
+  /* 퀘스트 두루마리 */
+  #quest { position:fixed; top:8px; left:8px; z-index:20; width:290px; }
+  #questIcon { width:44px; height:44px; cursor:pointer; display:block; }
+  #questIcon img { width:100%; height:100%; object-fit:contain; display:block;
+    image-rendering:pixelated; pointer-events:none; }
+  #questIcon .emoji { font-size:2rem; line-height:44px; text-align:center; display:block; }
+  #questText { display:none; margin-top:6px; padding:8px 10px; background:var(--card);
+    font-size:.9rem; line-height:1.6; font-weight:700; }
 
-  @media (max-width: 760px) {
-    .grid { grid-template-columns:1fr; }
-    #champ { order:-1; max-width:240px; margin:0 auto; }
+  /* 코드창 */
+  #code { position:fixed; right:8px; bottom:8px; z-index:20; display:flex; gap:8px; padding:8px;
+    background:#666; border:2px solid #8a4fff; }
+  #code .label { background:#fff; color:#000; font-weight:700; font-size:1rem; padding:8px 12px;
+    display:flex; align-items:center; }
+  #codeInput { width:150px; background:#fff; color:#000; border:0; padding:8px 10px;
+    font-size:16px; outline:none; -webkit-user-select:text; user-select:text; }
+  #toast { position:fixed; right:8px; bottom:78px; z-index:60; max-width:260px; display:none;
+    padding:8px 12px; background:var(--card); font-weight:700; font-size:.9rem; line-height:1.5; }
+
+  /* 3초간 시작하지 않으면 나타나는 사진 (오른쪽 위) */
+  #idle { position:fixed; right:8px; top:8px; z-index:15; width:64px; display:none; pointer-events:none; }
+  #idle img { width:100%; height:auto; display:block; border:2px solid var(--fg); }
+  #idle .emoji { font-size:2.4rem; display:block; text-align:center; }
+
+  /* 나무 (tree 코드) */
+  #tree { display:none; margin-top:12px; }
+  #tree img { width:220px; max-width:60vw; height:auto; display:block; image-rendering:pixelated;
+    mix-blend-mode:multiply; }
+  @media (prefers-color-scheme: dark) { #tree img { mix-blend-mode:normal; } }
+
+  /* 개발자 고양이 (code 코드) */
+  #dev { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:55; display:none;
+    text-align:center; pointer-events:none; width:280px; max-width:80vw; }
+  #devPic img { width:100%; height:auto; display:block; border:3px solid var(--fg);
+    animation:shake .1s linear infinite; }
+  #devMsg { margin-top:8px; padding:8px 12px; background:var(--bg); color:var(--fg);
+    border:2px solid var(--fg); font-weight:700; font-size:.95rem; line-height:1.5; }
+
+  /* 개발자 패널 (devcode0.1## 코드) */
+  #devPanel { display:none; }
+  #devPanel.open { display:block; }
+  #devLeft { position:fixed; left:18px; top:270px; z-index:25; width:215px; }
+  #devRight { position:fixed; right:8px; top:44px; z-index:25; width:150px; max-height:calc(100vh - 140px); overflow:auto; }
+  .drow { display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--card);
+    padding:5px 10px; margin-bottom:6px; font-size:.78rem; font-weight:700; }
+  .drow button { background:#fff; color:#111; border:0; padding:4px 12px; font-size:.78rem; min-height:26px; }
+  .drow input { flex:1; min-width:0; background:#fff; color:#111; border:0; padding:5px 8px; font-size:.8rem;
+    -webkit-user-select:text; user-select:text; }
+  .devclose { display:none; }
+
+  /* 팝 캣 + 상점 (popcat 코드) */
+  #dock { position:fixed; left:8px; bottom:8px; z-index:18; display:none; align-items:flex-end; gap:8px; }
+  #dock.open { display:flex; }
+  #popCol { width:100px; }
+  #pop { position:relative; width:100%; text-align:center; cursor:pointer; touch-action:manipulation;
+    -webkit-user-select:none; user-select:none; }
+  #pop img { width:100%; height:auto; display:block; pointer-events:none; }
+  #popFace { font-size:3.5rem; line-height:1.2; }
+  #pop .popCnt { font-weight:900; font-size:1rem; background:var(--card); padding:3px 6px; margin-top:4px; }
+  .popLv { background:var(--card); font-weight:700; font-size:.78rem; padding:3px 4px; margin-top:3px; text-align:center; }
+  #upPop { width:100%; margin-top:3px; padding:6px 0; font-size:.78rem; min-height:32px; }
+  .gain { position:absolute; left:50%; top:20%; font-weight:900; font-size:1.3rem; color:#e65100;
+    text-shadow:0 0 3px #fff; pointer-events:none; animation:gain .6s ease-out forwards; }
+  @keyframes gain { from { transform:translate(-50%,0); opacity:1; } to { transform:translate(-50%,-44px); opacity:0; } }
+  #shop { display:flex; gap:8px; align-items:flex-end; }
+  .sitem { width:80px; text-align:center; }
+  .sitem .price, .sitem .sname { background:var(--card); font-weight:700; font-size:.85rem; padding:3px 4px; }
+  .sitem .spic { background:var(--card); height:74px; display:flex; align-items:center; justify-content:center; margin:2px 0; }
+  .sitem .spic img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .sitem .spic .emoji { font-size:2rem; }
+  .sacts { display:flex; gap:2px; margin-top:3px; }
+  .sacts button { flex:1; padding:6px 0; font-size:.78rem; min-height:32px; }
+
+  /* 캣굴 (catgle 코드) - 구글 첫 화면처럼. 다크 모드에서도 흰 배경 */
+  #catgle { position:fixed; top:0; left:0; right:0; bottom:0; z-index:50; display:none; overflow:auto;
+    background:#fff; color:#202124; font-family:Arial,"Malgun Gothic",sans-serif;
+    -webkit-user-select:text; user-select:text; }
+  #cgClose { position:absolute; top:10px; right:14px; z-index:2; background:transparent; color:#5f6368;
+    border:0; padding:6px 10px; font-size:1.2rem; font-weight:400; }
+  #cgPage { min-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:20px 16px 80px; }
+  #cgHead { display:flex; flex-direction:column; align-items:center; gap:22px; width:100%; max-width:584px; }
+  #cgLogoBox img { width:272px; max-width:70vw; height:auto; display:block; }
+  #cgLogoBox .textlogo { font-size:3.4rem; font-weight:900; font-family:Georgia,serif; }
+  #cgBar { display:flex; align-items:center; gap:10px; width:100%; height:46px; padding:0 18px;
+    background:#fff; border:1px solid #dfe1e5; box-shadow:0 1px 6px rgba(32,33,36,.18);
+    border-radius:24px !important; }
+  #cgBar:focus-within { box-shadow:0 1px 6px rgba(32,33,36,.32); }
+  #cgBar .plus { font-size:1.4rem; line-height:1; color:#202124; }
+  #cgInput { flex:1; min-width:0; height:100%; padding:0; border:0; outline:none; background:transparent;
+    color:#202124; font-size:16px; }
+  #cgBtns { display:flex; gap:12px; margin-top:26px; }
+  .cgb { background:#f8f9fa; color:#3c4043; border:1px solid #f8f9fa; border-radius:4px !important;
+    padding:0 16px; height:36px; font-size:14px; font-weight:400; }
+  .cgb:hover { border-color:#dadce0; box-shadow:0 1px 1px rgba(0,0,0,.1); }
+  #cgResult { width:100%; max-width:900px; margin-top:22px; text-align:left; font-size:14px; line-height:1.58; }
+  #cgResult:empty { display:none; }
+  #cgResult .stat { color:#70757a; font-size:.85rem; margin-bottom:18px; }
+  #cgResult .item { max-width:652px; margin-bottom:26px; }
+  #cgResult .rurl { color:#202124; font-size:.85rem; }
+  #cgResult .rtitle { color:#1a0dab; font-size:1.25rem; line-height:1.3; margin:2px 0 3px; }
+  #cgResult .rdesc { color:#4d5156; }
+  #cgResult b { background:#fff3b0; color:#202124; padding:0 3px; }
+  #cgResult .nores { max-width:652px; color:#202124; }
+  #cgResult .nores ul { margin:10px 0 0 20px; padding:0; color:#4d5156; }
+  /* 검색 결과 화면: 로고가 왼쪽 위로 작아지고 검색창이 위로 올라감 */
+  #cgPage.results { justify-content:flex-start; padding-top:22px; }
+  #cgPage.results #cgHead { flex-direction:row; flex-wrap:wrap; align-items:center; gap:14px 24px; max-width:900px; }
+  #cgPage.results #cgLogoBox img { width:100px; }
+  #cgPage.results #cgBar { flex:1 1 260px; max-width:584px; width:auto; }
+  #cgPage.results #cgBtns { display:none; }
+
+  /* 좁은 화면: 개발자 패널을 아래에서 올라오는 창으로 */
+  @media (max-width: 900px) {
+    #devPanel.open { position:fixed; left:0; right:0; bottom:calc(62px + env(safe-area-inset-bottom)); max-height:58vh;
+      overflow:auto; z-index:30; background:var(--bg); border-top:3px solid #8a4fff; padding:8px; }
+    #devLeft, #devRight { position:static; width:auto; max-height:none; overflow:visible; }
+    .devclose { display:block; width:100%; padding:8px; font-size:.9rem; margin-bottom:8px; }
+  }
+
+  /* 폰 / 좁은 화면: 코드창을 맨 아래 전체 폭으로, 상점은 그 위로 */
+  @media (max-width: 640px) {
+    body { padding:10px 10px 76px; }
+    body.dockOpen { padding-bottom:250px; }
+    #code { left:0; right:0; bottom:0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); }
+    #codeInput { flex:1; width:auto; min-width:0; }
+    #dock { left:4px; bottom:calc(68px + env(safe-area-inset-bottom)); gap:4px; }
+    #popCol { width:76px; }
+    #pop .popCnt { font-size:.85rem; }
+    .popLv { font-size:.66rem; }
+    #upPop { font-size:.7rem; min-height:34px; }
+    #shop { gap:4px; }
+    .sitem { width:66px; }
+    .sitem .price, .sitem .sname { font-size:.72rem; }
+    .sitem .spic { height:54px; }
+    .sacts button { font-size:.72rem; min-height:34px; }
+    #toast { left:8px; right:8px; max-width:none; bottom:calc(74px + env(safe-area-inset-bottom)); }
+    body.dockOpen #toast { bottom:250px; }
+    #newsPic { width:92px; }
+    #newsBox { font-size:.82rem; }
+    #idle { width:52px; }
+    #quest { width:calc(100vw - 16px); }
   }
 </style>
-<script>
-  window.onerror = function (m, src, line) {
-    var d = document.createElement('div');
-    d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:9999;padding:10px;background:#b00020;color:#fff;font:14px sans-serif';
-    d.textContent = '오류: ' + m + ' (줄 ' + line + ')';
-    document.body.appendChild(d);
-  };
-</script>
 </head>
 <body>
-  <header>
-    <h1>catch cat <span class="sm">Ranking</span></h1>
-    <div class="bar">
-      <div>score <span id="lastScore">0</span></div>
-      <div>best <span id="bestScore">0</span></div>
-      <div>pop <span id="popTotal">0</span></div>
+  <div id="quest">
+    <div id="questIcon"></div>
+    <div id="questText">
+      고양이가 화면 밖에 나간 횟수: <span id="escCount">0</span>번 (확률 1%)<br>
+      고양이가 점수를 거절한 횟수: <span id="refCount">0</span>번 (확률 2%)<br>
+      고양이가 분신술을 쓴 횟수: <span id="cloneCount">0</span>번 (확률 5%)<br>
+      화면이 회전한 횟수: <span id="rotCount">0</span>번 (확률 2.5%)<br>
+      신의 손이 고양이를 잡은 횟수: <span id="handCount">0</span>번 (확률 3.5%)<br>
+      고양이가 졸았던 횟수: <span id="sleepCount">0</span>번 (확률 3%)<br>
+      버그 걸린 횟수: <span id="dumCount">0</span>번 (확률 1%)<br>
+      고양이가 가짜 총을 든 횟수: <span id="fakeCount">0</span>번 (확률 0.5%)<br>
+      냥캣이 지나간 횟수: <span id="nyanCount">0</span>번 (확률 0.3%)<br>
+      칼 고양이가 점수를 깎은 횟수: <span id="knifeCount">0</span>번 (확률 0.3%)<br>
+      UFO가 나타난 횟수: <span id="ufoCount">0</span>번 (확률 0.12%)<br>
+      당황한 고양이가 나온 횟수: <span id="sweatCount">0</span>번 (10초 동안 누르지 않으면)<br>
+      보스 고양이가 나타난 횟수: <span id="bossCount">0</span>번 (확률 0.1%)<br>
+      고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)<br>
+      뉴스 속보가 나온 횟수: <span id="newsCount">0</span>번 (현재 확률 <span id="newsRate">7</span>%)
     </div>
-    <div class="tools">
-      <a class="btn" href="index.html">게임으로</a>
-      <button class="sub" id="refresh">새로고침</button>
+  </div>
+
+  <h1>catch cat</h1>
+  <div class="bar">
+    <div>time <span id="time">60</span></div>
+    <div id="scoreChip">score <span id="score">0</span></div>
+    <div>best <span id="best">0</span></div>
+  </div>
+  <div id="boost"><div id="boostFill"></div><span id="boostTxt"></span></div>
+  <div id="field">
+    <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="gunHand"></div><div id="hp"></div><div id="cake">🎂</div></div>
+    <div id="exclam"></div>
+    <div id="ufo"></div>
+    <div id="overlay">
+      <div class="box">
+        <p id="msg">고양이를 클릭하십시오.<br>제한 시간은 60초입니다.</p>
+        <div class="nick">
+          <label for="nick">닉네임</label>
+          <input id="nick" type="text" maxlength="10" placeholder="익명" autocomplete="off" spellcheck="false">
+          <button id="nickSave" class="sub small">저장</button>
+        </div>
+        <div id="nickInfo"></div>
+        <div class="btns">
+          <button id="start">시작</button>
+          <button id="rankBtn" class="sub">랭킹</button>
+        </div>
+      </div>
     </div>
-  </header>
+  </div>
 
-  <div class="grid">
-    <section>
-      <div class="ptitle">catch cat top 15</div>
-      <div class="plist" id="listScore"></div>
-    </section>
+  <div id="news">
+    <div id="newsPic"></div>
+    <div id="newsBox"><span id="newsText">속보 대기 중...</span><span id="newsBadge"></span></div>
+  </div>
 
-    <div id="champ"></div>
+  <div id="tree"></div>
 
-    <section>
-      <div class="ptitle">pop cat top 15</div>
-      <div class="plist" id="listPop"></div>
-    </section>
+  <div id="knife"></div>
+  <div id="nyanWrap"><div id="nyan"></div></div>
+
+  <div id="devPanel">
+    <div id="devLeft">
+      <button id="devClose" class="devclose sub">닫기 ✕</button>
+      <div class="drow"><span>분신 개수</span><input id="devClones" type="number" min="1" max="12" value="4"></div>
+      <div class="drow"><span>뉴스 속보 바꾸기</span><input id="devNews" type="text" placeholder="(속보를 바꿔주세요)"></div>
+      <div class="drow"><span>제한 시간 inf</span><button id="devInfTime">실행</button></div>
+      <div class="drow"><span>점수 inf</span><button id="devInfScore">실행</button></div>
+    </div>
+    <div id="devRight"></div>
+  </div>
+
+  <div id="dock">
+    <div id="popCol">
+      <div id="pop">
+        <img id="popImg" alt="팝 캣" draggable="false">
+        <div id="popFace" style="display:none">😺</div>
+        <div class="popCnt">pop <span id="popCount">0</span></div>
+      </div>
+      <div class="popLv" id="popLvTxt"></div>
+      <button id="upPop">UP</button>
+    </div>
+    <div id="shop">
+      <div class="sitem">
+        <div class="price" id="priceBust">300pop</div>
+        <div class="spic" id="bustPic"></div>
+        <div class="sname">bust <span id="bustOwn">×0</span></div>
+        <div class="sacts"><button id="buyBust">구매</button><button id="useBust">사용</button></div>
+      </div>
+      <div class="sitem">
+        <div class="price" id="priceGun">10,000pop</div>
+        <div class="spic" id="gunPic"></div>
+        <div class="sname">gun <span id="gunOwn"></span></div>
+        <div class="sacts"><button id="buyGun">구매</button><button id="useGun">사용</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dev"><div id="devPic"></div><div id="devMsg"></div></div>
+
+  <div id="catgle">
+    <button id="cgClose" aria-label="닫기">✕</button>
+    <div id="cgPage" class="home">
+      <div id="cgHead">
+        <div id="cgLogoBox"></div>
+        <div id="cgBar">
+          <span class="plus">+</span>
+          <input id="cgInput" type="text" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div id="cgBtns">
+        <button id="cgBtn" class="cgb">Catgle 검색</button>
+        <button id="cgLucky" class="cgb">I'm Feeling Lucky</button>
+      </div>
+      <div id="cgResult"></div>
+    </div>
+  </div>
+
+  <div id="idle"></div>
+  <div id="toast"></div>
+  <div id="code">
+    <div class="label">code</div>
+    <input id="codeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
   </div>
 
 <script>
-  // 랭킹 서버 (index.html의 DB, RANK_ROOT와 항상 같게 유지할 것)
+  // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
+  const CAT_IMG = '16.jpg';
+  const ANGRY_IMG = '22.gif';
+  const GUN_IMG = '총든_21.png';
+  const SLEEP_IMG = 'zzz캣-removebg-preview.png';
+  const BOSS_IMG = '3f4e610e8ee350344466954c75f708fb-removebg-preview.png';
+  const HAND_IMG = '신의손-removebg-preview.png';
+  const TREE_IMG = 'tree.jpg';
+  const QUEST_IMG = '퀘스트롤픽셀.jpg';
+  const IDLE_IMG = '7cbde4666ebcf9b984b0203edfb2aa5d.jpg'; // 3초간 시작하지 않으면 나오는 사진
+  const CATGLE_IMG = 'catgle.png';                         // 캣굴 로고
+  const CAKE_IMG = 'catke-removebg-preview.png';           // 케이크 고양이 (catke 코드)
+  const DEV_IMG = '개발자.jpg';                             // 개발자 고양이 (code 코드)
+  const POP_OPEN_IMG = '입열은pop.jpg';                     // 팝 캣 입 연 모습 (popcat 코드)
+  const POP_CLOSED_IMG = '입다문pop.png';                   // 팝 캣 입 다문 모습
+  const DUM_IMG = 'ufocat-removebg-preview.png';           // DUM 고양이
+  // 아래 목록은 앞에서부터 순서대로 시도함 (파일 이름이 조금 달라도 이어서 찾음)
+  const NEWS_IMGS = ['newscat.jpg'];
+  const NYAN_IMGS = ['냥캣.jpg'];
+  const BUST_IMGS = ['몬스터주는고양이-removebg-preview__1_.png', '몬스터주는고양이-removebg-preview (1).png',
+                     '몬스터주는고양이-removebg-preview.png'];
+  const GUNITEM_IMGS = ['a3c1506705b1937665205031001bd09c-removebg-preview.png'];
+  const SWEAT_IMGS = ['뜨금냥-removebg-preview_1.png', '뜨금냥-removebg-preview (1).png', '뜨금냥-removebg-preview.png'];
+  const KNIFE_IMGS = ['칼고양이-removebg-preview_1.png', '칼고양이-removebg-preview (1).png', '칼고양이-removebg-preview.png'];
+  const UFO_IMGS = ['1c08c729f648cfd14070e46f8e0e7554-removebg-preview_1.png',
+                    '1c08c729f648cfd14070e46f8e0e7554-removebg-preview (1).png',
+                    '1c08c729f648cfd14070e46f8e0e7554-removebg-preview.png'];
+  const EXCLAM_IMGS = ['느낌표-removebg-preview_1.png', '느낌표-removebg-preview (1).png', '느낌표-removebg-preview.png'];
+  const BGM_FILES = ['zec53-piano-and-strings-ambient-confident-and-light-full-633882.mp3', 'bgm.mp3'];
+  const BGM_VOLUME = 0.4;       // 0~1
+
+  // 캣굴 검색어 → 비밀 코드. 한 덩어리씩 추가하면 검색어가 늘어남 (검색어는 소문자로)
+  const SEARCH_DB = {
+    'cat': {
+      title: '고양이에게 케이크를 선물하는 방법',
+      url: 'catgle.cat › secret › cake',
+      desc: '검색어 "cat"과 관련된 비밀 코드를 찾았습니다.',
+      code: 'catke',
+      tip: '게임 중에 코드창에 입력해 보십시오. 한 판에 한 번만 받을 수 있습니다.'
+    },
+    'pop': {
+      title: '팝 캣 - 입을 뻐끔거리는 고양이',
+      url: 'catgle.cat › secret › pop',
+      desc: '검색어 "pop"과 관련된 비밀 코드를 찾았습니다.',
+      code: 'popcat',
+      tip: '코드창에 입력한 뒤 팝 캣을 눌러 pop을 모으고, 상점과 업그레이드를 이용해 보십시오.'
+    },
+    'bug': {
+      title: '개발자 고양이를 부르는 방법',
+      url: 'catgle.cat › secret › dev',
+      desc: '검색어 "bug"와 관련된 비밀 코드를 찾았습니다.',
+      code: 'code',
+      tip: '억까 효과가 걸렸을 때 코드창에 입력해 보십시오.'
+    }
+  };
+  // 같은 결과를 보여주는 다른 검색어 (한글 등)
+  const ALIASES = { '고양이': 'cat', '팝': 'pop', '버그': 'bug' };
+  // 검색 결과에 같이 나오는 가짜 결과 (비밀 코드 결과 아래에 붙음)
+  const FILLERS = [
+    { title: '캣피디아 - 고양이 백과사전', url: 'catpedia.cat › wiki › cat',
+      desc: '고양이의 습성, 품종, 행동에 대한 설명을 모아 둔 백과사전입니다.' },
+    { title: '집사를 위한 고양이 사료 가이드', url: 'catfood.cat › guide',
+      desc: '연령과 체중에 맞는 사료를 고르는 방법을 정리했습니다.' }
+  ];
+  // I'm Feeling Lucky 버튼 메시지
+  const LUCKY_LINES = [
+    '오늘은 고양이를 잡기 좋은 날입니다.',
+    '고양이는 지금 낮잠을 자고 있습니다.',
+    '행운의 숫자는 7입니다.',
+    '행운의 검색어는 영어 세 글자입니다.',
+    '오늘의 운세: 총알을 조심하십시오.'
+  ];
+
+  // 뉴스 헤드라인 (좋은 뉴스 +3점 / 나쁜 뉴스 -1점)
+  const NEWS_GOOD = [
+    '아나바 식품 현재 130%',
+    '속보: 고양이 사료 가격이 대폭 하락했습니다',
+    '속보: 전국 집사들의 월급이 인상되었습니다',
+    '속보: 참치캔 무료 배포가 시작되었습니다',
+    '속보: 오늘의 고양이 운세 1위를 기록했습니다',
+    '속보: 캣타워 건설 지원금이 지급됩니다'
+  ];
+  const NEWS_BAD = [
+    '속보: 고양이 간식 가격이 폭등했습니다',
+    '속보: 전국에 털 날림 주의보가 발령되었습니다',
+    '속보: 아나바 식품 상장 폐지 위기',
+    '속보: 새벽 3시 우다다 경보가 발령되었습니다',
+    '속보: 캣타워 안전 점검에서 결함이 발견되었습니다',
+    '속보: 참치캔이 전량 품절되었습니다'
+  ];
+
+  // 공용 랭킹 서버 (Firebase Realtime Database)
+  // RANK_ROOT를 바꾸면 새 시즌(랭킹 초기화)이 됨. ranking.html의 RANK_ROOT와 항상 같게 유지할 것
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
   const RANK_ROOT = 'ranks/s2';
-  const REPORT_LIMIT = 3;   // 이 인원 이상이 신고하면 숨김
-  const RANK_MAX = 15;      // 표시 인원
+  const RANK_PAGE = 'ranking.html';
+  const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
-  // 1대 우승자 액자: 아래 목록을 앞에서부터 찾음 (둘 다 없으면 금색 액자로 대신 표시)
-  const FRAME_IMGS = ['frame.png', '스크린샷_2026-11-16_164819.png'];
-  const CHAMP_IMG = 'champion.png';       // 기본 액자 안에 넣을 그림 (없으면 🏆)
-  const CHAMP_TITLE = '1대 catch cat 우승자';
-  const CHAMP_NAME = '';                  // 기본 액자를 쓸 때 우승자 닉네임을 여기에 적으십시오
+  const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
+  const GAME_TIME = 60;        // 제한 시간(초)
+  const MIN_SIZE = 30, MAX_SIZE = 160;
+  const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
+  const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
+  const REFUSE_CHANCE = 0.02;  // 점수 거절 확률 2%
+  const REFUSE_TIME = 4000;    // 점수 거절 지속 시간 (4초)
+  const CLONE_CHANCE = 0.05;   // 분신술 확률 5%
+  const CLONE_MIN = 2, CLONE_MAX = 4; // 분신 수 (진짜 제외)
+  const ROTATE_CHANCE = 0.025; // 화면 회전 확률 2.5% (이동 1회당)
+  const HAND_CHANCE = 0.035;   // 신의 손 확률 3.5% (이동 1회당)
+  const HAND_TIME = 2000;      // 신의 손 지속 시간 (2초)
+  const HAND_SCORE = 2;        // 신의 손이 주는 점수
+  const SLEEP_CHANCE = 0.03;   // 졸린 고양이 확률 3% (이동 1회당)
+  const SLEEP_TIME = 3000;     // 자는 시간 (3초)
+  const SLEEP_PENALTY = 2;     // 자는 고양이를 깨웠을 때 깎이는 점수
+  const WAKE_ANGRY_TIME = 1500;// 깨어나서 화내는 시간 (1.5초)
+  const GUN_CHANCE = 0.0012;   // 총 든 고양이 확률 0.12% (이동 1회당)
+  const FAKE_GUN_CHANCE = 0.005; // 가짜 총 확률 0.5% (이동 1회당)
+  const GUN_SHOW_TIME = 2000;  // 총 든 사진 표시 시간 (2초)
+  const FAKE_REVEAL_TIME = 1500; // 가짜 총 정체가 드러난 뒤 머무는 시간 (1.5초)
+  const BOSS_CHANCE = 0.001;   // 보스 고양이 확률 0.1% (이동 1회당)
+  const BOSS_HP = 5;           // 보스 체력
+  const BOSS_SPEED = 6;        // 보스 빠르기 (일반 고양이의 6배)
+  const BOSS_DELAY = Math.round(900 * SLOW / BOSS_SPEED); // 보스 이동 간격(ms), 약 0.38초
+  const BOSS_SCORE = 5;        // 보스를 쓰러뜨리면 얻는 점수
+  const BOSS_W = 150, BOSS_H = 108; // 보스 크기
+  const CAKE_SCORE = 3;        // 케이크 고양이를 눌렀을 때 점수
+  const CAKE_TIME = 4000;      // 케이크 고양이가 머무는 시간 (4초)
+  const CAKE_W = 130, CAKE_H = 124; // 케이크 고양이 크기
+  const DEV_TIME = 2000;       // 개발자 고양이가 머무는 시간 (2초)
+  const EFFECT_TIME = 6000;    // 억까 효과 지속 시간 (6초)
+  const ANGRY_COLOR = true;    // 화난 사진을 컬러로 표시
+  const NICK_MAX = 10;         // 닉네임 최대 글자 수
+  const NICK_CHANGES_MAX = 5;  // 닉네임 변경 가능 횟수 (처음 설정 제외)
 
-  let cid = '';
-  try { cid = localStorage.getItem('catCid') || ''; } catch (e) {}
-  let reported = {};
-  try { reported = JSON.parse(localStorage.getItem('catReportedV2')) || {}; } catch (e) {}
+  // DUM 고양이 / 냥캣
+  const DUM_CHANCE = 0.01;     // DUM 고양이 확률 1% (이동 1회당)
+  const DUM_STILL_TIME = 2000; // 움직이지 않는 시간 (2초)
+  const DUM_FAST_TIME = 2000;  // 빨라지는 시간 (2초)
+  const DUM_FAST_MUL = 2.5;    // 기존 속도의 2.5배
+  const DUM_W = 110, DUM_H = 110;
+  const NYAN_CHANCE = 0.003;   // 냥캣 확률 0.3% (이동 1회당)
+  const NYAN_TIME = 3200;      // 냥캣이 화면을 지나가는 시간 (3.2초)
 
-  function num(k) { try { return parseInt(localStorage.getItem(k)) || 0; } catch (e) { return 0; } }
-  document.getElementById('lastScore').textContent = num('catLast').toLocaleString();
-  document.getElementById('bestScore').textContent = num('catBest').toLocaleString();
-  document.getElementById('popTotal').textContent = num('catPopTotal').toLocaleString();
+  // 당황 고양이 / 칼 고양이 / UFO
+  const SWEAT_IDLE = 10000;    // 고양이를 이만큼 누르지 않으면 당황 고양이가 나옴 (10초)
+  const SWEAT_SCORE = 10;      // 당황 고양이를 눌렀을 때 점수
+  const SWEAT_STAY = 4000;     // 당황 고양이가 머무는 시간 (4초, 안 누르면 그냥 사라짐)
+  const KNIFE_CHANCE = 0.003;  // 칼 고양이 확률 0.3% (이동 1회당)
+  const KNIFE_PENALTY = 3;     // 칼 고양이가 깎는 점수
+  const KNIFE_TRAVEL = 900;    // 칼 고양이가 점수 칸까지 날아가는 시간 (ms)
+  const UFO_CHANCE = 0.0012;   // UFO 확률 0.12% (이동 1회당)
+  const UFO_WARN_TIME = 1100;  // 느낌표가 뜬 뒤 UFO가 나타나기까지 (1.1초)
+  const UFO_TIME = 3000;       // UFO 지속 시간 (3초)
+  const UFO_SCORE = 2;         // UFO를 한 번 누를 때 점수
+  const UFO_BOOST_SCORE = 5;   // bust 적용 중 UFO를 한 번 누를 때 점수
+  const UFO_W = 120;           // UFO 가로 크기
 
+  // 상점 / 팝 캣
+  const BUST_PRICE = 300;      // bust 가격 (pop)
+  const BOOST_TIME = 5000;     // bust 지속 시간 (5초)
+  const BOOST_MUL = 3;         // bust 적용 중 고양이를 잡을 때 얻는 점수
+  const GUN_PRICE = 10000;     // gun 가격 (pop)
+  const THREAT_SCORE = 8;      // gun으로 협박해서 얻는 점수
+  const THREAT_TIME = 2000;    // 협박 장면이 유지되는 시간 (2초)
+  const POP_MAX_LV = 5;        // 팝 캣 최대 레벨 (최대 레벨에서 한 번에 +5)
+  const POP_UP_COST = [100, 400, 900, 2500]; // Lv1→2, 2→3, 3→4, 4→5 업그레이드 비용 (pop)
+  const POP_SUBMIT_DELAY = 6000; // 마지막으로 누른 뒤 pop 랭킹에 올리기까지 기다리는 시간
+
+  // 뉴스
+  const NEWS_START = 0.07;     // 판이 시작할 때 뉴스 확률 (1초마다 굴림)
+  const NEWS_STEP = 0.01;      // 뉴스가 안 나올 때마다 늘어나는 확률 (1초에 1%)
+  const NEWS_RESET = 0.01;     // 뉴스가 나온 뒤 되돌아가는 확률
+  const NEWS_GOOD_RATE = 0.5;  // 좋은 뉴스일 확률
+  const NEWS_GOOD_SCORE = 3;   // 좋은 뉴스 점수
+  const NEWS_BAD_SCORE = 1;    // 나쁜 뉴스 감점
+
+  const REFUSE_LINES = [
+    '귀찮습니다. 점수는 없습니다.',
+    '짜증납니다. 거절합니다.',
+    '싫습니다. 건드리지 마십시오.',
+    '오늘은 영업하지 않습니다.'
+  ];
+
+  // 닉네임 금지어 (욕설 / 성적인 표현). 소문자, 공백·숫자·기호 제거 후 비교
+  const BAD_WORDS = [
+    '시발','씨발','씨팔','시팔','쉬발','씹','병신','븅신','지랄','좆','존나','졸라','개새','새끼','썅',
+    '미친놈','미친년','꺼져','닥쳐','엿먹','느금','니미','니애미','애미','패드립',
+    '섹스','섹시','야동','포르노','자위','성기','자지','보지','음란','강간','몸캠','딸딸','걸레','창녀','쌍년','쌍놈',
+    'ㅅㅂ','ㅆㅂ','ㅂㅅ','ㅈㄹ','ㅁㅊ','ㅈㄴ','ㄲㅈ','ㅅㅅ',
+    'fuck','fck','shit','bitch','cunt','dick','pussy','cock','sex','porn','rape','nigg','whore','slut','asshole',
+    'sibal','ssibal','tlqkf','byungsin','jiral'
+  ];
+
+  const field = document.getElementById('field');
+  const cat = document.getElementById('cat');
+  const face = document.getElementById('face');
+  const bubble = document.getElementById('bubble');
+  const handBox = document.getElementById('hand');
+  const gunHand = document.getElementById('gunHand');
+  const hpEl = document.getElementById('hp');
+  const cakeEl = document.getElementById('cake');
+  const exclam = document.getElementById('exclam');
+  const ufo = document.getElementById('ufo');
+  const knife = document.getElementById('knife');
+  const overlay = document.getElementById('overlay');
+  const msg = document.getElementById('msg');
+  const scoreEl = document.getElementById('score');
+  const scoreChip = document.getElementById('scoreChip');
+  const timeEl = document.getElementById('time');
+  const bestEl = document.getElementById('best');
+  const boostEl = document.getElementById('boost');
+  const boostFill = document.getElementById('boostFill');
+  const boostTxt = document.getElementById('boostTxt');
+  const quest = document.getElementById('quest');
+  const questIcon = document.getElementById('questIcon');
+  const questText = document.getElementById('questText');
+  const escCountEl = document.getElementById('escCount');
+  const refCountEl = document.getElementById('refCount');
+  const cloneCountEl = document.getElementById('cloneCount');
+  const rotCountEl = document.getElementById('rotCount');
+  const handCountEl = document.getElementById('handCount');
+  const sleepCountEl = document.getElementById('sleepCount');
+  const dumCountEl = document.getElementById('dumCount');
+  const fakeCountEl = document.getElementById('fakeCount');
+  const nyanCountEl = document.getElementById('nyanCount');
+  const knifeCountEl = document.getElementById('knifeCount');
+  const ufoCountEl = document.getElementById('ufoCount');
+  const sweatCountEl = document.getElementById('sweatCount');
+  const bossCountEl = document.getElementById('bossCount');
+  const gunCountEl = document.getElementById('gunCount');
+  const newsCountEl = document.getElementById('newsCount');
+  const newsRateEl = document.getElementById('newsRate');
+  const newsPic = document.getElementById('newsPic');
+  const newsBox = document.getElementById('newsBox');
+  const newsText = document.getElementById('newsText');
+  const newsBadge = document.getElementById('newsBadge');
+  const nyanWrap = document.getElementById('nyanWrap');
+  const nyan = document.getElementById('nyan');
+  const codeBox = document.getElementById('code');
+  const codeInput = document.getElementById('codeInput');
+  const toast = document.getElementById('toast');
+  const idleBox = document.getElementById('idle');
+  const treeBox = document.getElementById('tree');
+  const nickInput = document.getElementById('nick');
+  const nickSave = document.getElementById('nickSave');
+  const nickInfo = document.getElementById('nickInfo');
+  const rankBtn = document.getElementById('rankBtn');
+  const catgleEl = document.getElementById('catgle');
+  const cgPage = document.getElementById('cgPage');
+  const cgLogoBox = document.getElementById('cgLogoBox');
+  const cgInput = document.getElementById('cgInput');
+  const cgBtn = document.getElementById('cgBtn');
+  const cgLucky = document.getElementById('cgLucky');
+  const cgResult = document.getElementById('cgResult');
+  const cgClose = document.getElementById('cgClose');
+  const devBox = document.getElementById('dev');
+  const devPic = document.getElementById('devPic');
+  const devMsg = document.getElementById('devMsg');
+  const devPanel = document.getElementById('devPanel');
+  const devRight = document.getElementById('devRight');
+  const devClonesInput = document.getElementById('devClones');
+  const devNewsInput = document.getElementById('devNews');
+  const dock = document.getElementById('dock');
+  const popBox = document.getElementById('pop');
+  const popImg = document.getElementById('popImg');
+  const popFace = document.getElementById('popFace');
+  const popCountEl = document.getElementById('popCount');
+  const popLvTxt = document.getElementById('popLvTxt');
+  const upPopBtn = document.getElementById('upPop');
+  const bustPic = document.getElementById('bustPic');
+  const gunPic = document.getElementById('gunPic');
+  const bustOwnEl = document.getElementById('bustOwn');
+  const gunOwnEl = document.getElementById('gunOwn');
+  const buyBustBtn = document.getElementById('buyBust');
+  const useBustBtn = document.getElementById('useBust');
+  const buyGunBtn = document.getElementById('buyGun');
+  const useGunBtn = document.getElementById('useGun');
+
+  // 시작 버튼을 가장 먼저 연결 (뒤쪽 코드에 문제가 있어도 눌리도록)
+  document.getElementById('start').addEventListener('click', function () { startGame(); });
+
+  // 사진 목록을 앞에서부터 차례로 시도하는 도우미 (모두 실패하면 onFail 실행)
+  function loadFirst(imgEl, list, onFail) {
+    let i = 0;
+    imgEl.draggable = false;
+    imgEl.onerror = () => {
+      i++;
+      if (i < list.length) imgEl.src = list[i];
+      else if (onFail) onFail();
+    };
+    imgEl.src = list[0];
+  }
+  // 목록에서 처음으로 불러와지는 사진의 주소를 찾아 알려줌 (없으면 null)
+  function resolveImg(list, cb) {
+    let i = 0;
+    const t = new Image();
+    t.onload = () => cb(t.src);
+    t.onerror = () => { i++; if (i < list.length) t.src = list[i]; else cb(null); };
+    t.src = list[0];
+  }
+
+  // ---------- 음악 ----------
+  let muted = false;
+  let bgm = null, bgmIdx = 0;
+  function makeBgm() {
+    try {
+      bgm = new Audio(BGM_FILES[bgmIdx]);
+      bgm.loop = true;
+      bgm.volume = BGM_VOLUME;
+      bgm.addEventListener('error', () => {
+        if (bgmIdx < BGM_FILES.length - 1) {
+          bgmIdx++;
+          makeBgm();
+          if (playing && !muted) playBgm(true);
+        }
+      });
+    } catch (e) { bgm = null; }
+  }
+  makeBgm();
+  function playBgm(reset) {
+    if (muted || !bgm) return;
+    try { if (reset) bgm.currentTime = 0; } catch (e) {}
+    try { const p = bgm.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+  function stopBgm() { try { if (bgm) bgm.pause(); } catch (e) {} }
+
+  // 고양이 사진 넣기 (실패하면 이모지)
+  const img = new Image();
+  img.src = CAT_IMG;
+  img.alt = '고양이';
+  img.draggable = false;
+  img.onerror = () => { face.innerHTML = '<span class="emoji">🐱</span>'; };
+  face.appendChild(img);
+
+  // 신의 손 사진 넣기 (실패하면 이모지)
+  const himg = new Image();
+  himg.src = HAND_IMG;
+  himg.alt = '신의 손';
+  himg.draggable = false;
+  himg.onerror = () => { handBox.innerHTML = '<span class="emoji">✋</span>'; };
+  handBox.appendChild(himg);
+
+  // 나무 사진 넣기 (실패하면 이모지)
+  const timg = new Image();
+  timg.src = TREE_IMG;
+  timg.alt = '나무';
+  timg.draggable = false;
+  timg.onerror = () => { treeBox.innerHTML = '<span style="font-size:4rem">🌳</span>'; };
+  treeBox.appendChild(timg);
+
+  // 대기 사진 넣기 (실패하면 이모지)
+  const iimg = new Image();
+  iimg.src = IDLE_IMG;
+  iimg.alt = '충전 중인 고양이';
+  iimg.draggable = false;
+  iimg.onerror = () => { idleBox.innerHTML = '<span class="emoji">🔌</span>'; };
+  idleBox.appendChild(iimg);
+
+  // 개발자 고양이 사진 넣기 (실패하면 이모지)
+  const dimg = new Image();
+  dimg.src = DEV_IMG;
+  dimg.alt = '개발자 고양이';
+  dimg.draggable = false;
+  dimg.onerror = () => { devPic.innerHTML = '<span style="font-size:5rem">🙀</span>'; };
+  devPic.appendChild(dimg);
+
+  // 뉴스 사진 / 상점 사진 / 협박 사진
+  const nimg = new Image();
+  loadFirst(nimg, NEWS_IMGS, () => { newsPic.innerHTML = '<span class="emoji">📰</span>'; });
+  newsPic.appendChild(nimg);
+
+  const bimg = new Image();
+  loadFirst(bimg, BUST_IMGS, () => { bustPic.innerHTML = '<span class="emoji">🥫</span>'; });
+  bustPic.appendChild(bimg);
+
+  const gimg = new Image();
+  loadFirst(gimg, GUNITEM_IMGS, () => { gunPic.innerHTML = '<span class="emoji">🔫</span>'; });
+  gunPic.appendChild(gimg);
+
+  const ghimg = new Image();
+  loadFirst(ghimg, GUNITEM_IMGS, () => { gunHand.innerHTML = '<span class="emoji">🔫</span>'; });
+  gunHand.appendChild(ghimg);
+
+  // 냥캣 사진 (실패하면 이모지)
+  let nyanOk = true;
+  const nyimg = new Image();
+  loadFirst(nyimg, NYAN_IMGS, () => { nyanOk = false; nyan.innerHTML = '<span class="emoji">🌈🐱</span>'; });
+  nyan.appendChild(nyimg);
+
+  // 느낌표 / UFO / 칼 고양이 사진 (실패하면 이모지)
+  const exImg = new Image();
+  loadFirst(exImg, EXCLAM_IMGS, () => { exclam.innerHTML = '<span style="font-size:2.4rem">❗</span>'; });
+  exclam.appendChild(exImg);
+  const ufoImg = new Image();
+  loadFirst(ufoImg, UFO_IMGS, () => { ufo.innerHTML = '<span style="font-size:4rem">🛸</span>'; });
+  ufo.appendChild(ufoImg);
+  const knImg = new Image();
+  loadFirst(knImg, KNIFE_IMGS, () => { knife.innerHTML = '<span style="font-size:3rem">🔪</span>'; });
+  knife.appendChild(knImg);
+
+  // 당황 고양이 사진 주소 (고양이 얼굴을 바꿔 끼울 때 사용)
+  let sweatSrc = null;
+  resolveImg(SWEAT_IMGS, (u) => { sweatSrc = u; });
+
+  // 캣굴 로고 넣기 (실패하면 글자 로고)
+  const limg = new Image();
+  limg.src = CATGLE_IMG;
+  limg.alt = 'Catgle';
+  limg.draggable = false;
+  limg.onerror = () => {
+    cgLogoBox.innerHTML = '<span class="textlogo"><span style="color:#4285F4">C</span><span style="color:#EA4335">a</span>' +
+      '<span style="color:#FBBC05">t</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span>' +
+      '<span style="color:#EA4335">e</span></span>';
+  };
+  cgLogoBox.appendChild(limg);
+
+  // 화난 / 총 든 / 자는 / 보스 / 케이크 / DUM 사진 미리 불러오기 (실패하면 평소 사진 유지)
+  let angryOk = true, gunOk = true, sleepOk = true, bossOk = true, cakeOk = true, dumOk = true;
+  const angryImg = new Image();
+  angryImg.src = ANGRY_IMG;
+  angryImg.onerror = () => { angryOk = false; };
+  const gunImg = new Image();
+  gunImg.src = GUN_IMG;
+  gunImg.onerror = () => { gunOk = false; };
+  const sleepImg = new Image();
+  sleepImg.src = SLEEP_IMG;
+  sleepImg.onerror = () => { sleepOk = false; };
+  const bossImg = new Image();
+  bossImg.src = BOSS_IMG;
+  bossImg.onerror = () => { bossOk = false; };
+  const cakeImg = new Image();
+  cakeImg.src = CAKE_IMG;
+  cakeImg.onerror = () => { cakeOk = false; };
+  const dumImg = new Image();
+  dumImg.src = DUM_IMG;
+  dumImg.onerror = () => { dumOk = false; };
+
+  function showAngryFace(on) {
+    if (!face.contains(img)) return;
+    if (on && !angryOk) return;
+    img.src = on ? ANGRY_IMG : CAT_IMG;
+    cat.classList.toggle('color', on && ANGRY_COLOR);
+  }
+
+  function showSleepFace(on) {
+    if (!face.contains(img)) return;
+    if (on && !sleepOk) return;
+    img.src = on ? SLEEP_IMG : CAT_IMG;
+    cat.classList.remove('color');
+  }
+
+  // 퀘스트 두루마리 사진 넣기 (실패하면 이모지)
+  const qimg = new Image();
+  qimg.src = QUEST_IMG;
+  qimg.alt = '퀘스트';
+  qimg.draggable = false;
+  qimg.onerror = () => { questIcon.innerHTML = '<span class="emoji">📜</span>'; };
+  questIcon.appendChild(qimg);
+
+  // 클릭하면 아래 글씨 열고 닫기
+  questIcon.addEventListener('click', () => {
+    questText.style.display = (questText.style.display === 'block') ? 'none' : 'block';
+  });
+
+  let score = 0, time = GAME_TIME, moveTimer = null, clockTimer = null, playing = false;
+  let scoreInf = false, scoreBeforeInf = 0;     // 개발자 패널의 '점수 inf'
+  let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
+  let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0, newsCount = 0, dumCount = 0, nyanCount = 0;
+  let knifeCount = 0, ufoCount = 0, sweatCount = 0;
+  let refusing = false, held = false, sleeping = false;
+  let bossActive = false, bossHp = 0, cakeMode = false, cakeSized = false;
+  let sweatMode = false, sweatTimer = null, sweatStayTimer = null, lastTap = 0;
+  let ufoPhase = null, ufoTimer = null;                    // 'warn'(느낌표) / 'on'(UFO)
+  let knifeBusy = false, knifeTimer = null;
+  let cakeUsed = false, gunUsed = false;       // 한 판에 한 번만 쓸 수 있는 것들
+  let boostActive = false, boostEnd = 0, boostTimer = null, boostTick = null;
+  let newsChance = NEWS_START, newsTimer = null, newsBadgeTimer = null;
+  let dumPhase = null, dumFast = false, dumTimer = null;   // DUM 고양이 상태 ('still' / 'fast')
+  let nyanBusy = false, nyanTimer = null;
+  let unlimited = false, usedInf = false;
+  let clones = [];
+  // 억까 효과 상태
+  let speedMul = 1, tiny = false, refuseChance = REFUSE_CHANCE, flipped = false;
+  const effectTimers = {};
+  let toastTimer = null;
+  let idleTimer = null;
+  let devTimer = null;
+  let best = 0;
+  try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
+  bestEl.textContent = best;
+
+  // 점수 표시 / 점수 더하기 (0 아래로는 내려가지 않음)
+  function renderScore() { scoreEl.textContent = scoreInf ? '∞' : score; }
+  function addScore(d) { score = Math.max(0, score + d); renderScore(); }
+  function showTime() { timeEl.textContent = unlimited ? '∞' : time; }
+  showTime();
+  msg.innerHTML = '고양이를 클릭하십시오.<br>제한 시간은 ' + GAME_TIME + '초입니다.';
+
+  // ---------- 3초간 시작하지 않으면 사진 표시 ----------
+  function startIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (!playing) idleBox.style.display = 'block';
+    }, IDLE_TIME);
+  }
+  function stopIdle() {
+    clearTimeout(idleTimer);
+    idleBox.style.display = 'none';
+  }
+
+  // ---------- 기기 식별 ----------
+  let cid = null;
+  try { cid = localStorage.getItem('catCid'); } catch (e) {}
+  if (!cid) {
+    let raw = '';
+    try { raw = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ''; } catch (e) {}
+    if (!raw) raw = Date.now() + '' + Math.random();
+    cid = raw.replace(/[^a-zA-Z0-9]/g, '');
+    try { localStorage.setItem('catCid', cid); } catch (e) {}
+  }
+
+  // 황금 닉네임 (gold2s 코드)
+  let goldOn = false;
+  try { goldOn = localStorage.getItem('catGold') === '1'; } catch (e) {}
+
+  // ---------- 공용 랭킹 (Firebase REST). board: 'score' 또는 'pop' ----------
   async function dbGet(board) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const timer = setTimeout(() => ctrl.abort(), 4000); // 4초 안에 응답이 없으면 포기
     try {
       const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '.json', { signal: ctrl.signal });
       if (!r.ok) throw new Error('get ' + r.status);
@@ -133,115 +966,1529 @@
     return list.filter(e => repCount(e) < REPORT_LIMIT)
       .sort((a, b) => b[field] - a[field] || (a.t || 0) - (b.t || 0));
   }
-  async function reportEntry(board, key) {
-    const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '/' + key + '/reports/' + cid + '.json',
-      { method: 'PUT', body: 'true' });
-    if (!r.ok) throw new Error('report');
+
+  // 기록 등록: 한 사람당 최고 기록 하나만 유지.
+  // 이미 다른 사람이 쓰는 닉네임이면 익명으로 등록하고 true를 돌려줌
+  async function submitEntry(board, field, value) {
+    let name = nickSet ? nick : '익명';
+    const list = toList(await dbGet(board), field);
+    let dup = false;
+    if (nickSet && list.some(e => e.name.toLowerCase() === name.toLowerCase() && e.cid !== cid)) {
+      name = '익명';
+      dup = true;
+    }
+    const mine = list.find(e => e.cid === cid);
+    if (!mine) {
+      const body = { name: name, cid: cid, t: Date.now() };
+      body[field] = value;
+      if (goldOn) body.gold = true;
+      const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '.json', { method: 'POST', body: JSON.stringify(body) });
+      if (!r.ok) throw new Error('post');
+      return dup;
+    }
+    const patch = {};
+    if (value > mine[field]) { patch[field] = value; patch.t = Date.now(); }
+    if (name !== mine.name) { patch.name = name; patch.reports = null; } // 이름이 바뀌면 신고 초기화
+    if (!!mine.gold !== goldOn) patch.gold = goldOn ? true : null;
+    if (Object.keys(patch).length) {
+      const r = await fetch(DB + '/' + RANK_ROOT + '/' + board + '/' + mine.key + '.json',
+        { method: 'PATCH', body: JSON.stringify(patch) });
+      if (!r.ok) throw new Error('patch');
+    }
+    return dup;
   }
 
-  function note(el, text) {
-    el.innerHTML = '';
-    const d = document.createElement('div');
-    d.className = 'note';
-    d.textContent = text;
-    el.appendChild(d);
-  }
-
-  async function renderBoard(board, field, unit, el) {
-    note(el, '불러오는 중...');
-    let all;
-    try { all = toList(await dbGet(board), field); }
-    catch (e) { note(el, '랭킹 서버에 연결하지 못했습니다.'); return; }
-    const vis = visibleSorted(all, field);
-    const hidden = all.length - vis.length;
-    if (!vis.length) { note(el, '아직 기록이 없습니다.'); return; }
-
-    el.innerHTML = '';
-    const table = document.createElement('table');
-    vis.slice(0, RANK_MAX).forEach((e, i) => {
-      const tr = document.createElement('tr');
-      const mine = cid && e.cid === cid;
-      const cells = [(i + 1) + '위', e.name + (mine ? ' ◀' : ''), e[field].toLocaleString() + unit];
-      const cls = ['r', 'n', 'v'];
-      cells.forEach((t, ci) => {
-        const td = document.createElement('td');
-        td.className = cls[ci];
-        td.textContent = t; // 닉네임은 글자 그대로 표시
-        if (mine) td.style.fontWeight = '900';
-        if (ci === 1 && e.gold) td.className += ' goldname'; // gold2s 코드를 쓴 닉네임은 황금색
-        tr.appendChild(td);
-      });
-      const tdb = document.createElement('td');
-      tdb.className = 'b';
-      if (!mine) {
-        const b = document.createElement('button');
-        b.className = 'sub rep';
-        const rkey = board + ':' + e.key;
-        if (reported[rkey] || !cid) { b.textContent = cid ? '신고함' : '신고'; b.disabled = true; }
-        else {
-          b.textContent = '신고';
-          b.addEventListener('click', async () => {
-            if (!confirm('"' + e.name + '" 기록을 신고하시겠습니까?\n부적절한 닉네임에만 사용해 주십시오.')) return;
-            b.disabled = true;
-            try {
-              await reportEntry(board, e.key);
-              reported[rkey] = 1;
-              try { localStorage.setItem('catReportedV2', JSON.stringify(reported)); } catch (x) {}
-              renderBoard(board, field, unit, el);
-            } catch (x) {
-              b.disabled = false;
-              alert('신고에 실패하였습니다. 잠시 후 다시 시도해 주십시오.');
-            }
-          });
+  // gold2s: 이미 등록된 기록에도 황금 닉네임을 바로 반영
+  async function setGold(on) {
+    goldOn = on;
+    try { localStorage.setItem('catGold', on ? '1' : '0'); } catch (e) {}
+    showToast(on ? '황금 닉네임이 적용되었습니다. 랭킹에서 황금색으로 표시됩니다.' : '황금 닉네임이 해제되었습니다.');
+    ['score', 'pop'].forEach(async (board) => {
+      try {
+        const mine = toList(await dbGet(board), board).find(e => e.cid === cid);
+        if (mine && !!mine.gold !== on) {
+          await fetch(DB + '/' + RANK_ROOT + '/' + board + '/' + mine.key + '.json',
+            { method: 'PATCH', body: JSON.stringify({ gold: on ? true : null }) });
         }
-        tdb.appendChild(b);
-      }
-      tr.appendChild(tdb);
-      table.appendChild(tr);
+      } catch (e) {}
     });
-    el.appendChild(table);
-    if (hidden > 0) {
-      const n = document.createElement('div');
-      n.className = 'note';
-      n.textContent = '신고 누적으로 숨겨진 기록: ' + hidden + '건';
-      el.appendChild(n);
+  }
+
+  // ---------- 닉네임 (형식 / 금지어 / 동명 / 변경 횟수 제한) ----------
+  let nick = '익명', nickSet = false, nickChanges = 0;
+  try {
+    const n = localStorage.getItem('catNick');
+    if (n && n !== '익명') { nick = n; nickSet = true; }
+    nickChanges = parseInt(localStorage.getItem('catNickChanges')) || 0;
+  } catch (e) {}
+  nickInput.value = nickSet ? nick : '';
+
+  function normalizeNick(s) {
+    return s.toLowerCase().replace(/[\s\-_.,!?~*^'"`+=\/\\|0-9]/g, '');
+  }
+  function hasBadWord(s) {
+    const n = normalizeNick(s);
+    return BAD_WORDS.some(w => n.includes(w));
+  }
+  // 형식 / 금지어 검사 (서버 없이). 문제가 없으면 빈 문자열
+  function checkNickLocal(name) {
+    if (!/^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]+$/.test(name)) return '닉네임은 한글, 영문, 숫자만 사용할 수 있습니다.';
+    if (hasBadWord(name)) return '사용할 수 없는 닉네임입니다. (욕설 또는 부적절한 표현)';
+    return '';
+  }
+  async function isDuplicateNick(name) {
+    try {
+      const low = name.toLowerCase();
+      return toList(await dbGet('score'), 'score').some(e => e.name.toLowerCase() === low && e.cid !== cid);
+    } catch (e) { return false; } // 서버에 연결되지 않으면 검사하지 않음
+  }
+  function applyNick(name) {
+    if (nickSet) nickChanges++;
+    nick = name;
+    nickSet = true;
+    try {
+      localStorage.setItem('catNick', nick);
+      localStorage.setItem('catNickChanges', String(nickChanges));
+    } catch (e) {}
+  }
+
+  function updateNickInfo(extra) {
+    let base;
+    if (!nickSet) {
+      base = '처음 설정은 횟수에 포함되지 않으며, 이후 변경은 ' + NICK_CHANGES_MAX + '회까지 가능합니다.';
+    } else {
+      const left = Math.max(0, NICK_CHANGES_MAX - nickChanges);
+      base = '닉네임 변경 가능 횟수: ' + left + '/' + NICK_CHANGES_MAX;
+    }
+    nickInfo.textContent = (extra ? extra + ' ' : '') + base;
+    const locked = nickSet && nickChanges >= NICK_CHANGES_MAX;
+    nickInput.disabled = locked;
+    nickSave.disabled = locked;
+  }
+
+  // 저장 버튼: 서버에서 동명도 확인 (서버가 응답하지 않으면 생략)
+  async function saveNickClick() {
+    const name = nickInput.value.trim().slice(0, NICK_MAX);
+    if (!name) {
+      if (nickSet) nickInput.value = nick;
+      updateNickInfo('닉네임을 입력해 주십시오.');
+      return;
+    }
+    if (nickSet && name === nick) { updateNickInfo('현재 사용 중인 닉네임입니다.'); return; }
+    if (nickSet && nickChanges >= NICK_CHANGES_MAX) {
+      nickInput.value = nick;
+      updateNickInfo('변경 횟수를 모두 사용하였습니다.');
+      return;
+    }
+    const bad = checkNickLocal(name);
+    if (bad) { updateNickInfo(bad); return; }
+    nickInfo.textContent = '확인 중...';
+    let dup = false;
+    try { dup = await isDuplicateNick(name); } catch (e) {}
+    if (dup) { updateNickInfo('이미 사용 중인 닉네임입니다.'); return; }
+    applyNick(name);
+    updateNickInfo('닉네임이 저장되었습니다.');
+  }
+  nickSave.addEventListener('click', saveNickClick);
+  nickInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNickClick(); });
+  updateNickInfo();
+
+  function showToast(text) {
+    toast.textContent = text;
+    toast.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
+  }
+
+  // ---------- 캣굴 (구글처럼 생긴 검색 사이트) ----------
+  function openCatgle() {
+    catgleEl.style.display = 'block';
+    cgPage.className = 'home';
+    cgInput.value = '';
+    cgResult.innerHTML = '';
+    setTimeout(() => { try { cgInput.focus(); } catch (e) {} }, 50);
+  }
+  function closeCatgle() { catgleEl.style.display = 'none'; }
+
+  function addResult(title, url, descNodes) {
+    const item = document.createElement('div');
+    item.className = 'item';
+    const u = document.createElement('div'); u.className = 'rurl'; u.textContent = url;
+    const t = document.createElement('div'); t.className = 'rtitle'; t.textContent = title;
+    const d = document.createElement('div'); d.className = 'rdesc';
+    descNodes.forEach(n => d.appendChild(n));
+    item.appendChild(u); item.appendChild(t); item.appendChild(d);
+    cgResult.appendChild(item);
+  }
+
+  function runSearch() {
+    const q = cgInput.value.trim();
+    if (!q) return;
+    cgPage.className = 'results';
+    cgResult.innerHTML = '';
+    // 검색어 → 결과 찾기 (한글 별칭 포함, 객체 기본 속성은 제외)
+    const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    const key = q.toLowerCase();
+    const k = has(ALIASES, key) ? ALIASES[key] : key;
+    const hit = has(SEARCH_DB, k) ? SEARCH_DB[k] : null;
+    if (!hit) {
+      const box = document.createElement('div');
+      box.className = 'nores';
+      box.appendChild(document.createTextNode('"' + q + '"에 대한 검색결과가 없습니다.'));
+      const ul = document.createElement('ul');
+      ['검색어의 철자가 정확한지 확인해 보십시오.', '다른 검색어를 사용해 보십시오.', '더 일반적인 검색어를 사용해 보십시오.']
+        .forEach(s => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
+      box.appendChild(ul);
+      cgResult.appendChild(box);
+      return;
+    }
+    const stat = document.createElement('div');
+    stat.className = 'stat';
+    stat.textContent = '검색결과 약 1,230,000개 (0.42초)';
+    cgResult.appendChild(stat);
+    const b = document.createElement('b'); b.textContent = hit.code;
+    addResult(hit.title, hit.url, [
+      document.createTextNode(hit.desc + ' 코드: '), b, document.createTextNode(' ' + hit.tip)
+    ]);
+    FILLERS.forEach(f => addResult(f.title, f.url, [document.createTextNode(f.desc)]));
+  }
+
+  function runLucky() {
+    cgPage.className = 'results';
+    cgResult.innerHTML = '';
+    cgInput.value = '';
+    const box = document.createElement('div');
+    box.className = 'nores';
+    box.style.fontSize = '1.2rem';
+    box.textContent = LUCKY_LINES[Math.floor(Math.random() * LUCKY_LINES.length)];
+    cgResult.appendChild(box);
+  }
+
+  cgBtn.addEventListener('click', runSearch);
+  cgLucky.addEventListener('click', runLucky);
+  cgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });
+  cgClose.addEventListener('click', closeCatgle);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCatgle(); });
+
+  // ---------- 팝 캣 + 상점 + 업그레이드 (popcat 코드) ----------
+  let popCount = 0;      // 지금 쓸 수 있는 pop (상점 / 업그레이드에 사용하면 줄어듦)
+  let popTotal = 0;      // 지금까지 모은 pop 총량 (pop 랭킹 기준)
+  let popLv = 1;
+  try {
+    popCount = parseInt(localStorage.getItem('catPop')) || 0;
+    const pt = parseInt(localStorage.getItem('catPopTotal'));
+    popTotal = isNaN(pt) ? popCount : Math.max(pt, popCount);
+    popLv = Math.min(POP_MAX_LV, Math.max(1, parseInt(localStorage.getItem('catPopLv')) || 1));
+  } catch (e) {}
+  let own = { bust: 0, gun: false };
+  try {
+    const o = JSON.parse(localStorage.getItem('catOwn'));
+    if (o && typeof o === 'object') { own.bust = Math.max(0, parseInt(o.bust) || 0); own.gun = !!o.gun; }
+  } catch (e) {}
+  function savePop() {
+    try {
+      localStorage.setItem('catPop', String(popCount));
+      localStorage.setItem('catPopTotal', String(popTotal));
+    } catch (e) {}
+  }
+  function saveOwn() { try { localStorage.setItem('catOwn', JSON.stringify(own)); } catch (e) {} }
+  function saveLv() { try { localStorage.setItem('catPopLv', String(popLv)); } catch (e) {} }
+  function popPer() { return popLv; } // 한 번 눌러서 얻는 pop (최대 레벨이면 5)
+
+  document.getElementById('priceBust').textContent = BUST_PRICE.toLocaleString() + 'pop';
+  document.getElementById('priceGun').textContent = GUN_PRICE.toLocaleString() + 'pop';
+
+  function renderShop() {
+    popCountEl.textContent = popCount;
+    popLvTxt.textContent = (popLv >= POP_MAX_LV ? 'MAX ' : '') + 'Lv ' + popLv + ' · 클릭당 +' + popPer();
+    if (popLv >= POP_MAX_LV) {
+      upPopBtn.textContent = 'MAX';
+      upPopBtn.disabled = true;
+    } else {
+      upPopBtn.textContent = 'UP ' + POP_UP_COST[popLv - 1].toLocaleString() + 'pop';
+      upPopBtn.disabled = false;
+    }
+    bustOwnEl.textContent = '×' + own.bust;
+    gunOwnEl.textContent = own.gun ? '보유' : '';
+    buyGunBtn.textContent = own.gun ? '보유중' : '구매';
+    buyGunBtn.disabled = own.gun;
+    useGunBtn.textContent = (playing && gunUsed) ? '사용됨' : '사용';
+  }
+  renderShop();
+
+  // pop 랭킹 등록 (마지막으로 누른 뒤 잠시 기다렸다가 한 번에 올림)
+  let popDirty = false, popSubmitTimer = null, popSubmitting = false;
+  function schedulePopSubmit() {
+    popDirty = true;
+    clearTimeout(popSubmitTimer);
+    popSubmitTimer = setTimeout(flushPop, POP_SUBMIT_DELAY);
+  }
+  async function flushPop() {
+    clearTimeout(popSubmitTimer);
+    if (!popDirty || popSubmitting) return;
+    popDirty = false;
+    popSubmitting = true;
+    try { await submitEntry('pop', 'pop', popTotal); } catch (e) { popDirty = true; }
+    popSubmitting = false;
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushPop();
+  });
+  if (popTotal > 0) schedulePopSubmit(); // 이미 모아 둔 pop도 랭킹에 반영
+
+  let popOk = true;
+  popImg.onerror = () => {
+    popOk = false;
+    popImg.style.display = 'none';
+    popFace.style.display = 'block';
+  };
+  popImg.src = POP_CLOSED_IMG;
+  const popOpenPre = new Image();
+  popOpenPre.src = POP_OPEN_IMG; // 입 연 사진 미리 불러오기
+
+  function setPop(open) {
+    if (popOk) popImg.src = open ? POP_OPEN_IMG : POP_CLOSED_IMG;
+    else popFace.textContent = open ? '😮' : '😺';
+  }
+
+  let audioCtx = null;
+  function popSound() {
+    if (muted) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const t = audioCtx.currentTime;
+      o.type = 'sine';
+      o.frequency.setValueAtTime(700, t);
+      o.frequency.exponentialRampToValueAtTime(220, t + 0.08);
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start(t);
+      o.stop(t + 0.11);
+    } catch (e) {}
+  }
+
+  function popFloat(n) {
+    const s = document.createElement('div');
+    s.className = 'gain';
+    s.textContent = '+' + n;
+    popBox.appendChild(s);
+    setTimeout(() => { s.remove(); }, 600);
+  }
+
+  // 팝 캣을 누를 때마다 pop을 얻음 (레벨만큼)
+  popBox.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const n = popPer();
+    popCount += n;
+    popTotal += n;
+    popCountEl.textContent = popCount;
+    savePop();
+    popFloat(n);
+    setPop(true);
+    popSound();
+    schedulePopSubmit();
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => {
+    popBox.addEventListener(ev, () => setPop(false));
+  });
+
+  function upgradePop() {
+    if (popLv >= POP_MAX_LV) { showToast('popcat은 이미 최대 레벨입니다.'); return; }
+    const cost = POP_UP_COST[popLv - 1];
+    if (popCount < cost) {
+      showToast('pop이 부족합니다. (필요 ' + cost.toLocaleString() + ' / 보유 ' + popCount.toLocaleString() + ')');
+      return;
+    }
+    popCount -= cost;
+    popLv++;
+    savePop(); saveLv(); renderShop();
+    showToast('popcat Lv ' + popLv + ': 한 번 누를 때 pop +' + popPer());
+  }
+  upPopBtn.addEventListener('click', upgradePop);
+
+  function togglePop() {
+    const on = !dock.classList.contains('open');
+    dock.classList.toggle('open', on);
+    document.body.classList.toggle('dockOpen', on);
+    setPop(false);
+    renderShop();
+    showToast(on ? '팝 캣과 상점이 나타났습니다.' : '팝 캣과 상점이 사라졌습니다.');
+  }
+
+  function buyItem(id) {
+    if (id === 'gun' && own.gun) { showToast('gun은 이미 보유 중입니다.'); return; }
+    const price = id === 'gun' ? GUN_PRICE : BUST_PRICE;
+    if (popCount < price) {
+      showToast('pop이 부족합니다. (필요 ' + price.toLocaleString() + ' / 보유 ' + popCount.toLocaleString() + ')');
+      return;
+    }
+    popCount -= price;
+    if (id === 'gun') own.gun = true; else own.bust++;
+    savePop(); saveOwn(); renderShop();
+    showToast(id + ' 구매가 완료되었습니다.');
+  }
+
+  // ---------- bust: 일정 시간 동안 점수가 늘어남 ----------
+  function updateBoostText() {
+    const left = Math.max(0, boostEnd - Date.now());
+    boostTxt.textContent = 'BUST  1점 → ' + BOOST_MUL + '점  ' + (left / 1000).toFixed(1) + '초';
+  }
+  function startBoost() {
+    boostActive = true;
+    boostEnd = Date.now() + BOOST_TIME;
+    boostEl.classList.add('on');
+    field.classList.add('boosted');
+    boostFill.style.transition = 'none';
+    boostFill.style.width = '100%';
+    void boostFill.offsetWidth; // 애니메이션 초기화
+    boostFill.style.transition = 'width ' + BOOST_TIME + 'ms linear';
+    boostFill.style.width = '0%';
+    clearInterval(boostTick);
+    boostTick = setInterval(updateBoostText, 100);
+    updateBoostText();
+    clearTimeout(boostTimer);
+    boostTimer = setTimeout(stopBoost, BOOST_TIME);
+  }
+  function stopBoost() {
+    boostActive = false;
+    clearInterval(boostTick);
+    clearTimeout(boostTimer);
+    boostEl.classList.remove('on');
+    field.classList.remove('boosted');
+  }
+
+  function useBust() {
+    if (!playing) { showToast('bust는 게임 중에만 사용할 수 있습니다.'); return; }
+    if (own.bust <= 0) { showToast('보유한 bust가 없습니다. 상점에서 구매하십시오.'); return; }
+    if (boostActive) { showToast('이미 bust가 적용 중입니다.'); return; }
+    own.bust--; saveOwn(); renderShop();
+    startBoost();
+    showToast('bust 적용: ' + (BOOST_TIME / 1000) + '초간 1점이 ' + BOOST_MUL + '점이 됩니다.');
+  }
+
+  // ---------- gun: 고양이를 협박해서 8점 (한 판에 한 번) ----------
+  function useGun() {
+    if (!playing) { showToast('gun은 게임 중에만 사용할 수 있습니다.'); return; }
+    if (!own.gun) { showToast('gun을 먼저 구매해야 합니다.'); return; }
+    if (gunUsed) { showToast('gun은 한 판에 한 번만 사용할 수 있습니다.'); return; }
+    if (bossActive || held || cakeMode || dumPhase === 'still' || ufoPhase) {
+      showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.');
+      return;
+    }
+    gunUsed = true;
+    renderShop();
+    threatCat();
+  }
+
+  function threatCat() {
+    clearTimeout(moveTimer);
+    clearClones();
+    escaped = false; refusing = false; sleeping = false; cakeMode = false; sweatMode = false;
+    held = true; // 협박 중에는 클릭 무시
+    cat.classList.remove('hit', 'angry', 'held', 'cake', 'gun', 'boss', 'sweat');
+    showAngryFace(false);
+    cakeEl.textContent = '';
+    placeEl(cat);
+    cat.style.display = 'block';
+    cat.classList.add('threat', 'color');
+    addScore(THREAT_SCORE);
+    bubble.textContent = '살려 주십시오. +' + THREAT_SCORE;
+    moveTimer = setTimeout(moveCat, THREAT_TIME);
+  }
+
+  buyBustBtn.addEventListener('click', () => buyItem('bust'));
+  useBustBtn.addEventListener('click', useBust);
+  buyGunBtn.addEventListener('click', () => buyItem('gun'));
+  useGunBtn.addEventListener('click', useGun);
+
+  // ---------- 랭킹 페이지로 이동 ----------
+  async function goRanking() {
+    rankBtn.disabled = true;
+    try { await Promise.race([flushPop(), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+    location.href = RANK_PAGE;
+  }
+  rankBtn.addEventListener('click', goRanking);
+
+  // ---------- 뉴스 (1초마다 확률을 굴림) ----------
+  function showNews(custom) {
+    newsCount++;
+    newsCountEl.textContent = newsCount;
+    const good = Math.random() < NEWS_GOOD_RATE;
+    const list = good ? NEWS_GOOD : NEWS_BAD;
+    newsText.textContent = custom || list[Math.floor(Math.random() * list.length)];
+    const d = good ? NEWS_GOOD_SCORE : -NEWS_BAD_SCORE;
+    addScore(d);
+    newsBadge.textContent = (d > 0 ? '+' : '') + d;
+    newsBadge.style.color = good ? '#1b8a2d' : '#d00';
+    clearTimeout(newsBadgeTimer);
+    newsBadgeTimer = setTimeout(() => { newsBadge.textContent = ''; }, 4000);
+    newsBox.classList.remove('flash');
+    void newsBox.offsetWidth;
+    newsBox.classList.add('flash');
+  }
+
+  function newsTick() {
+    if (!playing) return;
+    if (Math.random() < newsChance) {
+      showNews();
+      newsChance = NEWS_RESET;            // 뉴스가 뜨면 확률을 다시 1%로
+    } else {
+      newsChance = Math.min(1, newsChance + NEWS_STEP); // 안 뜰 때마다 1%씩 증가
+    }
+    newsRateEl.textContent = Math.round(newsChance * 100);
+  }
+
+  // 일정 시간 동안만 켜지는 효과 (같은 효과를 다시 받으면 시간 갱신)
+  function timed(key, on, off, ms) {
+    on();
+    clearTimeout(effectTimers[key]);
+    effectTimers[key] = setTimeout(() => { off(); delete effectTimers[key]; }, ms);
+  }
+
+  function resetEffects() {
+    Object.values(effectTimers).forEach(clearTimeout);
+    for (const k in effectTimers) delete effectTimers[k];
+    speedMul = 1; tiny = false; refuseChance = REFUSE_CHANCE; flipped = false;
+    field.classList.remove('ghost', 'flip');
+  }
+
+  // ---------- 개발자 고양이 (code 코드): 핫픽스로 억까 효과 해제 ----------
+  function devCat() {
+    let text;
+    if (playing) {
+      const wasTiny = tiny;
+      resetEffects();
+      dumFast = false; // DUM 고양이의 가속도 해제
+      // 크기 축소 효과가 걸려 있었다면 평소 크기로 되돌림 (다른 상태 중이 아닐 때만)
+      if (wasTiny && !bossActive && !cakeSized && !held) {
+        cat.style.width = '80px';
+        cat.style.height = '80px';
+      }
+      text = '핫픽스를 적용했습니다. 억까 효과가 모두 해제되었습니다.';
+    } else {
+      text = '고칠 버그가 없습니다. 게임을 시작해 보십시오.';
+    }
+    devMsg.textContent = text;
+    devBox.style.display = 'block';
+    clearTimeout(devTimer);
+    devTimer = setTimeout(() => { devBox.style.display = 'none'; }, DEV_TIME);
+  }
+
+  // 화면 회전 (코드창 효과와 자동 발동 공용)
+  function rotateScreen() {
+    escaped = false;
+    timed('flip', () => { flipped = true; field.classList.add('flip'); },
+                  () => { flipped = false; field.classList.remove('flip'); }, EFFECT_TIME);
+  }
+
+  // 억까 효과 목록
+  const EFFECTS = [
+    { name: '시간이 5초 감소했습니다.', limitedOnly: true,
+      run() { time = Math.max(1, time - 5); showTime(); } },
+    { name: '점수가 2점 차감되었습니다.',
+      run() { addScore(-2); } },
+    { name: '6초간 고양이 속도가 증가합니다.',
+      run() { timed('speed', () => { speedMul = 0.25; }, () => { speedMul = 1; }, EFFECT_TIME); } },
+    { name: '6초간 화면이 회전합니다.',
+      run() { rotateScreen(); } },
+    { name: '6초간 고양이 크기가 최소화됩니다.',
+      run() {
+        timed('tiny', () => {
+                tiny = true;
+                if (!bossActive) { cat.style.width = MIN_SIZE + 'px'; cat.style.height = MIN_SIZE + 'px'; }
+              },
+              () => { tiny = false; }, EFFECT_TIME);
+      } },
+    { name: '6초간 고양이가 투명해집니다.',
+      run() { timed('ghost', () => field.classList.add('ghost'), () => field.classList.remove('ghost'), EFFECT_TIME); } },
+    { name: '분신술이 강제로 발동되었습니다.',
+      run() {
+        if (clones.length === 0 && !held && !sleeping && !bossActive && !cakeMode && !sweatMode &&
+            dumPhase !== 'still' && !ufoPhase) {
+          escaped = false;
+          placeEl(cat);
+          cat.style.display = 'block';
+          spawnClones();
+        }
+      } },
+    { name: '6초간 점수 거절 확률이 50%가 됩니다.',
+      run() { timed('refuse', () => { refuseChance = 0.5; }, () => { refuseChance = REFUSE_CHANCE; }, EFFECT_TIME); } }
+  ];
+
+  function applyRandomEffect() {
+    const pool = EFFECTS.filter(f => !(unlimited && f.limitedOnly));
+    const f = pool[Math.floor(Math.random() * pool.length)];
+    f.run();
+    showToast('효과 발동: ' + f.name);
+  }
+
+  // 제한 시간 / 점수 무한 (코드창과 개발자 패널 공용). 쓰면 그 판은 랭킹에 등록되지 않음
+  function toggleUnlimited() {
+    unlimited = !unlimited;
+    if (unlimited) usedInf = true;
+    if (!unlimited) time = GAME_TIME;
+    showTime();
+    showToast(unlimited ? '무제한이 적용되었습니다.' : '무제한이 해제되었습니다.');
+  }
+  function toggleScoreInf() {
+    usedInf = true;
+    scoreInf = !scoreInf;
+    if (scoreInf) { scoreBeforeInf = score; score = 1000000000; }
+    else { score = scoreBeforeInf; }
+    renderScore();
+    showToast(scoreInf ? '점수가 무한이 되었습니다. (랭킹에 등록되지 않습니다)' : '점수 무한이 해제되었습니다.');
+  }
+
+  // ---------- 개발자 패널 (devcode0.1## 코드) ----------
+  function toggleDev() {
+    const on = !devPanel.classList.contains('open');
+    devPanel.classList.toggle('open', on);
+    showToast(on ? '개발자 패널이 열렸습니다. 사용한 판은 랭킹에 등록되지 않습니다.' : '개발자 패널이 닫혔습니다.');
+  }
+
+  // 이벤트를 강제로 실행하기 전에 고양이 상태를 깨끗하게 정리
+  function normalizeCat() {
+    clearTimeout(moveTimer);
+    clearTimeout(dumTimer);
+    clearTimeout(sweatStayTimer);
+    dumPhase = null; dumFast = false;
+    stopUfo();
+    clearClones();
+    escaped = false; refusing = false; held = false; sleeping = false;
+    cakeMode = false; bossActive = false; sweatMode = false; cakeSized = false;
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'boss', 'threat', 'sweat', 'color');
+    cakeEl.textContent = '';
+    const sz = tiny ? MIN_SIZE : 80;
+    cat.style.width = sz + 'px';
+    cat.style.height = sz + 'px';
+    showAngryFace(false);
+    cat.style.display = 'block';
+  }
+
+  function devRun(fn, normalize) {
+    if (!playing) { showToast('게임 중에만 실행할 수 있습니다.'); return; }
+    usedInf = true; // 개발자 기능을 쓴 판은 랭킹에 등록하지 않음
+    if (normalize) normalizeCat();
+    fn();
+  }
+
+  function devClones() {
+    const n = Math.max(1, Math.min(12, parseInt(devClonesInput.value) || 4));
+    placeEl(cat);
+    spawnClones(n);
+    moveTimer = setTimeout(moveCat, 1500);
+  }
+  function escapeCat() {
+    escaped = true;
+    escCount++;
+    escCountEl.textContent = escCount;
+    placeOutside();
+    moveTimer = setTimeout(moveCat, 1500);
+  }
+
+  // [버튼 이름, 실행할 동작, 실행 전에 고양이 상태를 정리할지]
+  const DEV_ACTIONS = [
+    ['당황하기', () => startSweat(), true],
+    ['칼로 점수 깍기', () => startKnife(), false],
+    ['ufo소환', () => startUfo(), true],
+    ['뉴스보내기', () => showNews(devNewsInput.value.trim()), false],
+    ['고양이가 총을 들기', () => gunEnding('게임을 종료합니다.', '고양이가 총을 들고 나타났습니다.<br>게임이 즉시 종료되었습니다.'), true],
+    ['보스 고양이 소환', () => startBoss(), true],
+    ['냥캣 소환', () => startNyan(), false],
+    ['가짜 총들기', () => fakeGun(), true],
+    ['버그 걸리기', () => startDum(), true],
+    ['고양이 졸기', () => sleepCat(), true],
+    ['신의 손 소환', () => handGrab(), true],
+    ['화면 회전', () => { rotCount++; rotCountEl.textContent = rotCount; rotateScreen(); }, false],
+    ['분신 술 쓰기', () => devClones(), true],
+    ['점수 거절하기', () => refuseCat(), true],
+    ['고양이 밖에 나가기', () => escapeCat(), true]
+  ];
+  DEV_ACTIONS.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'drow';
+    const sp = document.createElement('span');
+    sp.textContent = a[0];
+    const b = document.createElement('button');
+    b.textContent = '실행';
+    b.addEventListener('click', () => devRun(a[1], a[2]));
+    row.appendChild(sp);
+    row.appendChild(b);
+    devRight.appendChild(row);
+  });
+  document.getElementById('devInfTime').addEventListener('click', toggleUnlimited);
+  document.getElementById('devInfScore').addEventListener('click', toggleScoreInf);
+  document.getElementById('devClose').addEventListener('click', toggleDev);
+
+  // 코드창: Enter로 입력
+  codeInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const v = codeInput.value.trim().toLowerCase();
+    codeInput.value = '';
+    if (v === 'inf') {
+      toggleUnlimited();
+    } else if (v === 'mute') {
+      muted = !muted;
+      if (muted) stopBgm(); else if (playing) playBgm(false);
+      showToast(muted ? '소리가 꺼졌습니다.' : '소리가 켜졌습니다.');
+    } else if (v === 'tree') {
+      const on = treeBox.style.display !== 'block';
+      treeBox.style.display = on ? 'block' : 'none';
+      showToast(on ? '나무가 생성되었습니다.' : '나무가 사라졌습니다.');
+    } else if (v === 'catgle') {
+      if (playing) showToast('캣굴은 게임 중에 열 수 없습니다.');
+      else openCatgle();
+    } else if (v === 'catke') {
+      if (!playing) showToast('케이크는 게임 중에만 받을 수 있습니다.');
+      else if (cakeUsed) showToast('케이크는 한 판에 한 번만 받을 수 있습니다.');
+      else if (bossActive) showToast('보스 전투 중에는 사용할 수 없습니다.');
+      else if (dumPhase === 'still' || ufoPhase) showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.');
+      else { cakeUsed = true; cakeCat(); }
+    } else if (v === 'code') {
+      devCat();
+    } else if (v === 'popcat' || v === 'pop') {
+      togglePop();
+    } else if (v === 'gold2s') {
+      setGold(!goldOn);
+    } else if (v === 'devcode0.1##') {
+      toggleDev();
+    } else if (v === '의지') {
+      if (playing) {
+        showToast('고양이에게 의지를 얻었습니다.');
+        gunEnding('의지를 얻었습니다.', '고양이에게 의지를 얻었습니다.<br>게임이 종료되었습니다.');
+      } else {
+        showToast('의지는 게임 중에만 사용할 수 있습니다.');
+      }
+    } else if (v) {
+      if (playing) applyRandomEffect();
+      else showToast('효과는 게임 중에만 적용됩니다.');
+    }
+    codeInput.blur();
+  });
+
+  function randSize() {
+    return MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE);
+  }
+
+  // 잡을 때마다 가로/세로를 따로 랜덤 변경
+  function reshapeCat() {
+    if (tiny) {
+      cat.style.width = MIN_SIZE + 'px';
+      cat.style.height = MIN_SIZE + 'px';
+      return;
+    }
+    cat.style.width = randSize() + 'px';
+    cat.style.height = randSize() + 'px';
+  }
+
+  // 박스 안 임의 위치에 요소 배치
+  function placeEl(el) {
+    const maxX = Math.max(0, field.clientWidth - el.offsetWidth);
+    const maxY = Math.max(0, field.clientHeight - el.offsetHeight);
+    el.style.left = Math.random() * maxX + 'px';
+    el.style.top = Math.random() * maxY + 'px';
+  }
+
+  function hits(x, y, w, h, r) {
+    return x < r.right && x + w > r.left && y < r.bottom && y + h > r.top;
+  }
+
+  // 박스 밖 위치 (화면 안에서, 박스/두루마리/코드창/상점을 피함)
+  function placeOutside() {
+    const r = field.getBoundingClientRect();
+    const q = quest.getBoundingClientRect();
+    const c = codeBox.getBoundingClientRect();
+    const p = dock.classList.contains('open') ? dock.getBoundingClientRect() : null;
+    const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+    const w = cat.offsetWidth, h = cat.offsetHeight;
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * Math.max(0, vw - w);
+      const y = Math.random() * Math.max(0, vh - h);
+      if (!hits(x, y, w, h, r) && !hits(x, y, w, h, q) && !hits(x, y, w, h, c) &&
+          !(p && hits(x, y, w, h, p))) {
+        cat.style.left = (x - r.left) + 'px';
+        cat.style.top = (y - r.top) + 'px';
+        return;
+      }
+    }
+    cat.style.left = (vw - w - r.left) + 'px';
+    cat.style.top = (-r.top) + 'px';
+  }
+
+  // ---------- 분신술 ----------
+  function makeClone() {
+    const el = document.createElement('div');
+    el.className = 'clone';
+    el.style.width = cat.offsetWidth + 'px';
+    el.style.height = cat.offsetHeight + 'px';
+    const inner = document.createElement('div');
+    inner.className = 'cface';
+    const im = new Image();
+    im.src = CAT_IMG;
+    im.draggable = false;
+    im.onerror = () => { inner.innerHTML = '<span class="emoji">🐱</span>'; };
+    inner.appendChild(im);
+    el.appendChild(inner);
+    // 분신은 1번 클릭하면 사라짐 (점수 없음)
+    el.addEventListener('pointerdown', (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      el.remove();
+      clones = clones.filter(c => c !== el);
+    });
+    field.appendChild(el);
+    return el;
+  }
+
+  function spawnClones(n) {
+    if (!n) n = CLONE_MIN + Math.floor(Math.random() * (CLONE_MAX - CLONE_MIN + 1));
+    for (let i = 0; i < n; i++) {
+      const el = makeClone();
+      placeEl(el);
+      clones.push(el);
+    }
+    cloneCount++;
+    cloneCountEl.textContent = cloneCount;
+  }
+
+  function clearClones() {
+    clones.forEach(c => c.remove());
+    clones = [];
+  }
+
+  // ---------- 신의 손 (염력으로 고양이를 잡고 2점 지급) ----------
+  function handGrab() {
+    handCount++;
+    handCountEl.textContent = handCount;
+    clearClones();
+    refusing = false;
+    escaped = false;
+    held = true;
+    cat.classList.remove('hit', 'angry');
+    showAngryFace(false);
+    placeEl(cat);
+    cat.style.display = 'block';
+    cat.classList.add('held', 'color');
+    addScore(HAND_SCORE);
+    bubble.textContent = '신의 손이 붙잡았습니다. +' + HAND_SCORE;
+    moveTimer = setTimeout(moveCat, HAND_TIME);
+  }
+
+  // ---------- 졸린 고양이 (자는 동안 누르면 깨어나서 화내며 감점) ----------
+  function sleepCat() {
+    sleepCount++;
+    sleepCountEl.textContent = sleepCount;
+    clearClones();
+    escaped = false;
+    refusing = false;
+    held = false;
+    cat.classList.remove('hit', 'angry', 'held', 'color');
+    placeEl(cat);
+    cat.style.display = 'block';
+    sleeping = true;
+    showSleepFace(true);
+    moveTimer = setTimeout(moveCat, SLEEP_TIME);
+  }
+
+  // ---------- 점수 거절 (고양이가 짜증내며 점수를 주지 않음) ----------
+  function refuseCat() {
+    refusing = true;
+    refCount++;
+    refCountEl.textContent = refCount;
+    bubble.textContent = REFUSE_LINES[Math.floor(Math.random() * REFUSE_LINES.length)];
+    cat.classList.add('angry');
+    showAngryFace(true);
+    moveTimer = setTimeout(moveCat, REFUSE_TIME);
+  }
+
+  // ---------- 당황 고양이: 10초 동안 누르지 않으면 나타나 10점을 줌 ----------
+  function checkSweat() {
+    if (!playing) return;
+    if (Date.now() - lastTap < SWEAT_IDLE) return;
+    if (bossActive || held || sleeping || cakeMode || refusing || sweatMode || escaped ||
+        dumPhase || ufoPhase) return;
+    startSweat();
+  }
+
+  function startSweat() {
+    sweatCount++;
+    sweatCountEl.textContent = sweatCount;
+    lastTap = Date.now(); // 다시 10초를 세기 시작
+    clearTimeout(moveTimer);
+    clearTimeout(sweatStayTimer);
+    clearClones();
+    escaped = false; refusing = false; held = false; sleeping = false; cakeMode = false;
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'boss', 'threat');
+    if (sweatSrc && face.contains(img)) {
+      img.src = sweatSrc;
+      cat.classList.add('color');
+    }
+    cat.style.width = '100px';
+    cat.style.height = '100px';
+    cat.style.display = 'block';
+    placeEl(cat);
+    sweatMode = true;
+    cat.classList.add('sweat');
+    bubble.textContent = '뜨끔... 눌러 주십시오.';
+    sweatStayTimer = setTimeout(() => {
+      if (!sweatMode) return;
+      sweatMode = false;
+      moveCat();
+    }, SWEAT_STAY);
+  }
+
+  // ---------- 칼 고양이: 점수 칸으로 날아가 점수를 깎음 ----------
+  function startKnife() {
+    if (knifeBusy) return;
+    knifeBusy = true;
+    knifeCount++;
+    knifeCountEl.textContent = knifeCount;
+    const chip = scoreChip.getBoundingClientRect();
+    const fr = field.getBoundingClientRect();
+    let sx = fr.left + fr.width / 2, sy = fr.top + fr.height / 2;
+    if (cat.style.display !== 'none') {
+      const cr = cat.getBoundingClientRect();
+      sx = cr.left + cr.width / 2;
+      sy = cr.top + cr.height / 2;
+    }
+    const kw = 90;
+    knife.style.transition = 'none';
+    knife.style.left = (sx - kw / 2) + 'px';
+    knife.style.top = (sy - kw / 2) + 'px';
+    knife.style.display = 'block';
+    void knife.offsetWidth;
+    knife.style.transition = 'left ' + KNIFE_TRAVEL + 'ms ease-in, top ' + KNIFE_TRAVEL + 'ms ease-in';
+    knife.style.left = (chip.left + chip.width / 2 - kw / 2) + 'px';
+    knife.style.top = (chip.top + chip.height / 2 - kw / 2) + 'px';
+    clearTimeout(knifeTimer);
+    knifeTimer = setTimeout(() => {
+      if (playing) addScore(-KNIFE_PENALTY);
+      scoreChip.classList.add('cut');
+      showToast('칼 고양이가 점수 ' + KNIFE_PENALTY + '점을 깎았습니다.');
+      knifeTimer = setTimeout(stopKnife, 500);
+    }, KNIFE_TRAVEL);
+  }
+
+  function stopKnife() {
+    knifeBusy = false;
+    clearTimeout(knifeTimer);
+    knife.style.display = 'none';
+    scoreChip.classList.remove('cut');
+  }
+
+  // ---------- UFO: 느낌표 → 1.1초 뒤 고양이 위에 UFO (3초, 누를 때마다 점수) ----------
+  function startUfo() {
+    if (ufoPhase) return;
+    ufoCount++;
+    ufoCountEl.textContent = ufoCount;
+    clearTimeout(moveTimer);
+    clearClones();
+    escaped = false; refusing = false; sleeping = false; cakeMode = false; sweatMode = false;
+    held = true; // UFO가 끝날 때까지 고양이는 움직이지 않고 눌리지 않음
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'boss', 'threat', 'sweat');
+    showAngryFace(false);
+    cat.style.display = 'block';
+    if (!cat.style.left) placeEl(cat);
+    ufoPhase = 'warn';
+    const fw = field.clientWidth;
+    const ew = exclam.offsetWidth || 40;
+    const cx = cat.offsetLeft + cat.offsetWidth / 2;
+    exclam.style.left = Math.max(0, Math.min(fw - ew, cx - ew / 2)) + 'px';
+    exclam.style.top = Math.max(0, cat.offsetTop - 52) + 'px';
+    exclam.style.display = 'block';
+    clearTimeout(ufoTimer);
+    ufoTimer = setTimeout(showUfo, UFO_WARN_TIME);
+  }
+
+  function showUfo() {
+    if (!playing || ufoPhase !== 'warn') return;
+    exclam.style.display = 'none';
+    ufoPhase = 'on';
+    const fw = field.clientWidth, fh = field.clientHeight;
+    const uw = Math.min(UFO_W, fw);
+    const ratio = ufoImg.naturalWidth ? ufoImg.naturalHeight / ufoImg.naturalWidth : 1.34;
+    const uh = uw * ratio;
+    const cx = cat.offsetLeft + cat.offsetWidth / 2;
+    ufo.style.width = uw + 'px';
+    ufo.style.left = Math.max(0, Math.min(fw - uw, cx - uw / 2)) + 'px';
+    ufo.style.top = Math.max(0, Math.min(fh - uh, cat.offsetTop - uh + 30)) + 'px'; // 고양이보다 조금 위
+    ufo.style.display = 'block';
+    ufo.classList.remove('in');
+    void ufo.offsetWidth;
+    ufo.classList.add('in');
+    cat.style.display = 'none'; // 고양이는 UFO 빛 속으로 사라짐
+    clearTimeout(ufoTimer);
+    ufoTimer = setTimeout(endUfo, UFO_TIME);
+  }
+
+  function endUfo() {
+    stopUfo();
+    if (!playing) return;
+    held = false;
+    cat.style.display = 'block';
+    moveCat();
+  }
+
+  function stopUfo() {
+    clearTimeout(ufoTimer);
+    ufoPhase = null;
+    exclam.style.display = 'none';
+    ufo.style.display = 'none';
+  }
+
+  ufo.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!playing || ufoPhase !== 'on') return;
+    lastTap = Date.now();
+    addScore(boostActive ? UFO_BOOST_SCORE : UFO_SCORE);
+    ufo.classList.add('tap');
+    setTimeout(() => { ufo.classList.remove('tap'); }, 80);
+  });
+
+  // ---------- DUM 고양이: 2초간 움직이지 않다가, 이후 2초간 2.5배 빨라짐 ----------
+  function baseFace() {
+    if (dumFast && dumOk && face.contains(img)) {
+      img.src = DUM_IMG;           // 빨라진 동안에는 DUM 그림 유지
+      cat.classList.add('color');
+    } else {
+      showAngryFace(false);
     }
   }
 
-  // 우승자 액자: 액자 그림이 있으면 그대로, 없으면 금색 액자
-  function buildChamp() {
-    const champ = document.getElementById('champ');
-    const fi = new Image();
-    fi.className = 'frame';
-    fi.alt = CHAMP_TITLE;
-    let i = 0;
-    fi.onload = () => { champ.innerHTML = ''; champ.appendChild(fi); };
-    fi.onerror = () => {
-      i++;
-      if (i < FRAME_IMGS.length) { fi.src = FRAME_IMGS[i]; return; }
-      champ.innerHTML = '<div class="gold"><div class="inner" id="cInner"></div></div><div class="cap" id="cCap"></div>';
-      const inner = document.getElementById('cInner');
-      const ci = new Image();
-      ci.alt = '우승자';
-      ci.onload = () => { inner.innerHTML = ''; inner.appendChild(ci); };
-      ci.onerror = () => { inner.innerHTML = '<div class="big">🏆</div>'; };
-      inner.innerHTML = '<div class="big">🏆</div>';
-      ci.src = CHAMP_IMG;
-      const cap = document.getElementById('cCap');
-      const t = document.createElement('div'); t.textContent = CHAMP_TITLE; cap.appendChild(t);
-      if (CHAMP_NAME) { const n = document.createElement('div'); n.textContent = CHAMP_NAME; cap.appendChild(n); }
-    };
-    fi.src = FRAME_IMGS[0];
+  function startDum() {
+    dumCount++;
+    dumCountEl.textContent = dumCount;
+    clearClones();
+    escaped = false; refusing = false; held = false; sleeping = false; cakeMode = false; sweatMode = false;
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'boss', 'threat', 'sweat');
+    if (dumOk && face.contains(img)) {
+      img.src = DUM_IMG;
+      cat.classList.add('color');
+    }
+    cat.style.width = DUM_W + 'px';
+    cat.style.height = DUM_H + 'px';
+    cat.style.display = 'block';
+    placeEl(cat);
+    dumPhase = 'still';
+    clearTimeout(moveTimer);
+    clearTimeout(dumTimer);
+    showToast('DUM 고양이가 나타났습니다. ' + (DUM_STILL_TIME / 1000) + '초간 움직이지 않습니다.');
+    dumTimer = setTimeout(startDumFast, DUM_STILL_TIME);
   }
 
-  function loadAll() {
-    renderBoard('score', 'score', '점', document.getElementById('listScore'));
-    renderBoard('pop', 'pop', ' pop', document.getElementById('listPop'));
+  function startDumFast() {
+    if (!playing) return;
+    dumPhase = 'fast';
+    dumFast = true;
+    showToast('DUM 고양이가 ' + DUM_FAST_MUL + '배 빨라집니다.');
+    clearTimeout(moveTimer);
+    moveCat();
+    clearTimeout(dumTimer);
+    dumTimer = setTimeout(endDum, DUM_FAST_TIME);
   }
-  document.getElementById('refresh').addEventListener('click', loadAll);
 
-  buildChamp();
-  loadAll();
+  function endDum() {
+    dumPhase = null;
+    dumFast = false;
+  }
+
+  // ---------- 냥캣: 게임 박스 위를 지나가며 가림 ----------
+  function startNyan() {
+    if (nyanBusy) return;
+    nyanBusy = true;
+    nyanCount++;
+    nyanCountEl.textContent = nyanCount;
+    const r = field.getBoundingClientRect();
+    nyanWrap.style.left = r.left + 'px';
+    nyanWrap.style.top = r.top + 'px';
+    nyanWrap.style.width = r.width + 'px';
+    nyanWrap.style.height = r.height + 'px';
+    nyanWrap.style.display = 'block';
+    const w = nyanOk ? Math.min(r.width * 1.1, 640) : 220;
+    const ratio = (nyanOk && nyimg.naturalWidth) ? nyimg.naturalHeight / nyimg.naturalWidth : 0.46;
+    const h = nyanOk ? w * ratio : 80;
+    nyan.style.width = w + 'px';
+    nyan.style.top = Math.random() * Math.max(0, r.height - h) + 'px';
+    nyan.style.transition = 'none';
+    nyan.style.transform = 'translateX(' + (-w) + 'px)';
+    void nyan.offsetWidth;
+    nyan.style.transition = 'transform ' + NYAN_TIME + 'ms linear';
+    nyan.style.transform = 'translateX(' + r.width + 'px)';
+    clearTimeout(nyanTimer);
+    nyanTimer = setTimeout(stopNyan, NYAN_TIME + 100);
+  }
+
+  function stopNyan() {
+    nyanBusy = false;
+    clearTimeout(nyanTimer);
+    nyanWrap.style.display = 'none';
+  }
+
+  // ---------- 가짜 총 (진짜와 똑같이 나오지만 장전되지 않음) ----------
+  function fakeGun() {
+    fakeCount++;
+    fakeCountEl.textContent = fakeCount;
+    clearClones();
+    refusing = false;
+    escaped = false;
+    sleeping = false;
+    held = true; // 이 동안 클릭 무시
+    cat.classList.remove('hit', 'angry', 'held', 'color');
+    if (gunOk && face.contains(img)) {
+      img.src = GUN_IMG;
+      cat.classList.add('color');
+    }
+    cat.style.width = '170px';
+    cat.style.height = '160px';
+    placeEl(cat);
+    bubble.textContent = '게임을 종료합니다.';
+    cat.classList.add('gun');
+    cat.style.display = 'block';
+    moveTimer = setTimeout(() => {
+      bubble.textContent = '...장전되지 않았습니다.';
+      moveTimer = setTimeout(() => {
+        cat.classList.remove('gun');
+        cat.style.width = tiny ? MIN_SIZE + 'px' : '80px';
+        cat.style.height = tiny ? MIN_SIZE + 'px' : '80px';
+        moveCat();
+      }, FAKE_REVEAL_TIME);
+    }, GUN_SHOW_TIME);
+  }
+
+  // ---------- 케이크 고양이 (catke 코드, 한 판에 한 번) ----------
+  function cakeCat() {
+    clearTimeout(moveTimer);
+    clearClones();
+    escaped = false; refusing = false; held = false; sleeping = false; sweatMode = false;
+    cat.classList.remove('hit', 'angry', 'held', 'color', 'gun', 'threat', 'sweat');
+    if (cakeOk && face.contains(img)) {
+      img.src = CAKE_IMG;       // 케이크 든 고양이 사진
+      cakeEl.textContent = '';
+    } else {
+      showAngryFace(false);     // 사진이 없으면 평소 고양이 + 🎂 이모지
+      cakeEl.textContent = '🎂';
+    }
+    const w = cakeOk ? CAKE_W : 90, h = cakeOk ? CAKE_H : 90;
+    cat.style.width = w + 'px';
+    cat.style.height = h + 'px';
+    cakeSized = true;
+    placeEl(cat);
+    cat.style.display = 'block';
+    cakeMode = true;
+    cat.classList.add('cake', 'color');
+    bubble.textContent = '케이크를 가져왔습니다.';
+    moveTimer = setTimeout(moveCat, CAKE_TIME);
+  }
+
+  // ---------- 보스 고양이 (체력 5, 빠르기 6) ----------
+  function renderHp() {
+    hpEl.textContent = '♥'.repeat(Math.max(0, bossHp)) + '♡'.repeat(Math.max(0, BOSS_HP - bossHp));
+  }
+
+  function startBoss() {
+    bossCount++;
+    bossCountEl.textContent = bossCount;
+    clearClones();
+    refusing = false; held = false; sleeping = false; cakeMode = false; escaped = false; sweatMode = false;
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'threat', 'sweat');
+    if (bossOk && face.contains(img)) img.src = BOSS_IMG;
+    cat.style.width = BOSS_W + 'px';
+    cat.style.height = BOSS_H + 'px';
+    bossActive = true;
+    bossHp = BOSS_HP;
+    renderHp();
+    cat.classList.add('boss', 'color');
+    cat.style.display = 'block';
+    placeEl(cat);
+    showToast('보스 고양이가 나타났습니다. 체력 ' + BOSS_HP);
+    moveTimer = setTimeout(bossMove, BOSS_DELAY);
+  }
+
+  function bossMove() {
+    if (!playing || !bossActive) return;
+    cat.classList.remove('hit');
+    placeEl(cat);
+    moveTimer = setTimeout(bossMove, BOSS_DELAY);
+  }
+
+  function hitBoss() {
+    bossHp--;
+    renderHp();
+    cat.classList.add('hit');
+    if (bossHp <= 0) endBoss();
+  }
+
+  function endBoss() {
+    clearTimeout(moveTimer);
+    bossActive = false;
+    cat.classList.remove('boss', 'hit', 'color');
+    showAngryFace(false);
+    const sz = tiny ? MIN_SIZE : 80;
+    cat.style.width = sz + 'px';
+    cat.style.height = sz + 'px';
+    addScore(BOSS_SCORE);
+    showToast('보스 고양이를 쓰러뜨렸습니다. +' + BOSS_SCORE);
+    moveTimer = setTimeout(moveCat, 800);
+  }
+
+  // ---------- 총 든 고양이 (총 사진 2초 표시 후 게임 오버) ----------
+  function gunEnding(bubbleText, reason) {
+    playing = false;
+    stopBgm();
+    stopBoost();
+    stopNyan();
+    stopKnife();
+    stopUfo();
+    clearInterval(sweatTimer);
+    clearTimeout(sweatStayTimer);
+    clearTimeout(dumTimer);
+    dumPhase = null; dumFast = false;
+    clearInterval(newsTimer);
+    clearTimeout(moveTimer);
+    clearInterval(clockTimer);
+    clearClones();
+    refusing = false;
+    held = false;
+    sleeping = false;
+    escaped = false;
+    bossActive = false;
+    cakeMode = false;
+    cakeSized = false;
+    sweatMode = false;
+    gunCount++;
+    gunCountEl.textContent = gunCount;
+    cat.classList.remove('hit', 'angry', 'held', 'boss', 'cake', 'threat', 'sweat');
+    if (gunOk && face.contains(img)) {
+      img.src = GUN_IMG;
+      cat.classList.add('color');
+      cat.style.width = '170px';
+      cat.style.height = '160px';
+    }
+    cat.style.display = 'block';
+    placeEl(cat);
+    bubble.textContent = bubbleText;
+    cat.classList.add('gun');
+    setTimeout(() => { endGame(reason); }, GUN_SHOW_TIME);
+  }
+
+  function moveCat() {
+    if (!playing) return;
+    cakeMode = false;
+    bossActive = false;
+    sweatMode = false;
+    cat.classList.remove('cake', 'boss', 'threat', 'sweat');
+    if (cakeSized) {            // 케이크 고양이가 끝났으면 평소 크기로 복귀
+      cakeSized = false;
+      const sz = tiny ? MIN_SIZE : 80;
+      cat.style.width = sz + 'px';
+      cat.style.height = sz + 'px';
+    }
+    baseFace();                 // 평소 사진으로 복귀 (DUM 가속 중에는 DUM 그림 유지)
+
+    // 0.12% 확률로 총 든 고양이 등장
+    if (Math.random() < GUN_CHANCE) {
+      gunEnding('게임을 종료합니다.', '고양이가 총을 들고 나타났습니다.<br>게임이 즉시 종료되었습니다.');
+      return;
+    }
+
+    // 0.5% 확률로 가짜 총
+    if (Math.random() < FAKE_GUN_CHANCE) {
+      fakeGun();
+      return;
+    }
+
+    // 0.1% 확률로 보스 고양이
+    if (Math.random() < BOSS_CHANCE) {
+      startBoss();
+      return;
+    }
+
+    // 1% 확률로 DUM 고양이 (이미 DUM 동작 중이면 제외)
+    if (!dumPhase && Math.random() < DUM_CHANCE) {
+      startDum();
+      return;
+    }
+
+    // 0.12% 확률로 UFO (느낌표 → UFO)
+    if (!ufoPhase && Math.random() < UFO_CHANCE) {
+      startUfo();
+      return;
+    }
+
+    // 0.3% 확률로 냥캣 (게임은 그대로 진행, 화면만 가림)
+    if (!nyanBusy && Math.random() < NYAN_CHANCE) startNyan();
+
+    // 0.3% 확률로 칼 고양이 (점수 칸으로 날아가 점수를 깎음, 게임은 그대로 진행)
+    if (!knifeBusy && Math.random() < KNIFE_CHANCE) startKnife();
+
+    // 3.5% 확률로 신의 손 등장
+    if (Math.random() < HAND_CHANCE) {
+      handGrab();
+      return;
+    }
+
+    // 3% 확률로 졸린 고양이
+    if (Math.random() < SLEEP_CHANCE) {
+      sleepCat();
+      return;
+    }
+
+    // 2.5% 확률로 화면 회전 (이미 회전 중이면 제외)
+    if (!flipped && Math.random() < ROTATE_CHANCE) {
+      rotCount++;
+      rotCountEl.textContent = rotCount;
+      rotateScreen();
+      showToast('화면이 회전합니다.');
+    }
+
+    refusing = false;
+    held = false;
+    sleeping = false;
+    cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
+    if (dumFast && dumOk) cat.classList.add('color');
+
+    const cloning = clones.length > 0;
+
+    if (!cloning && !flipped && !escaped && Math.random() < ESCAPE_CHANCE) {
+      escaped = true;
+      escCount++;
+      escCountEl.textContent = escCount;
+    }
+
+    if (escaped) {
+      placeOutside();
+    } else {
+      placeEl(cat);
+      if (cloning) {
+        clones.forEach(placeEl); // 남은 분신도 같이 이동
+      } else if (Math.random() < CLONE_CHANCE) {
+        cat.style.display = 'block';
+        spawnClones();
+      }
+    }
+    cat.style.display = 'block';
+    const delay = Math.max(350, 900 - score * 25) * SLOW * speedMul / (dumFast ? DUM_FAST_MUL : 1);
+    moveTimer = setTimeout(moveCat, delay);
+  }
+
+  function catchCat(e) {
+    if (!playing) return;
+    e.preventDefault();
+    lastTap = Date.now(); // 고양이를 누른 시각 (10초 동안 안 누르면 당황 고양이)
+
+    // 보스: 누를 때마다 체력 1 감소
+    if (bossActive) { hitBoss(); return; }
+
+    if (refusing || held) return; // 거절 중 / 붙잡힌 중 / 협박 중 / 가짜 총 중에는 입력 무시
+
+    // DUM 고양이(움직이지 않는 2초): 눌러도 움직이지 않고 점수는 일반과 같이 쌓임
+    if (dumPhase === 'still') {
+      addScore(boostActive ? BOOST_MUL : 1);
+      cat.classList.add('hit');
+      setTimeout(() => { cat.classList.remove('hit'); }, 80);
+      return;
+    }
+
+    clearTimeout(moveTimer);
+
+    // 케이크 고양이: 누르면 보너스 점수
+    if (cakeMode) {
+      cakeMode = false;
+      cakeEl.textContent = '';
+      addScore(CAKE_SCORE);
+      bubble.textContent = '케이크 감사합니다. +' + CAKE_SCORE;
+      moveTimer = setTimeout(moveCat, 900);
+      return;
+    }
+
+    // 당황 고양이: 누르면 10점을 주고 사라짐
+    if (sweatMode) {
+      sweatMode = false;
+      clearTimeout(sweatStayTimer);
+      addScore(SWEAT_SCORE);
+      bubble.textContent = '감사합니다. +' + SWEAT_SCORE;
+      moveTimer = setTimeout(moveCat, 900);
+      return;
+    }
+
+    // 자는 고양이를 깨우면 화내며 감점
+    if (sleeping) {
+      sleeping = false;
+      refusing = true; // 화내는 동안 입력 무시
+      addScore(-SLEEP_PENALTY);
+      bubble.textContent = '깨우지 마십시오. -' + SLEEP_PENALTY;
+      cat.classList.add('angry');
+      showAngryFace(true);
+      moveTimer = setTimeout(moveCat, WAKE_ANGRY_TIME);
+      return;
+    }
+
+    // 확률로 짜증내며 점수 거절 (4초)
+    if (Math.random() < refuseChance) {
+      refuseCat();
+      return;
+    }
+
+    addScore(boostActive ? BOOST_MUL : 1); // bust 적용 중에는 점수가 늘어남
+    escaped = false; // 잡으면 박스 안으로 복귀
+    clearClones();   // 진짜를 잡으면 분신 모두 사라짐
+    cat.classList.add('hit');
+    reshapeCat();
+    moveTimer = setTimeout(moveCat, 120);
+  }
+  cat.addEventListener('pointerdown', catchCat);
+
+  // 게임 시작: 닉네임에 문제가 있어도 시작은 막지 않음
+  function startGame() {
+    if (playing) return;
+    stopIdle(); // 시작을 눌렀으므로 대기 사진 숨김
+    closeCatgle();
+
+    const name = nickInput.value.trim().slice(0, NICK_MAX);
+    if (name && !(nickSet && name === nick)) {
+      if (nickSet && nickChanges >= NICK_CHANGES_MAX) {
+        nickInput.value = nick;
+        showToast('변경 횟수를 모두 사용하여 기존 닉네임으로 진행합니다.');
+      } else {
+        const bad = checkNickLocal(name);
+        if (bad) {
+          nickInput.value = nickSet ? nick : '';
+          showToast(bad + ' ' + (nickSet ? '기존 닉네임' : '익명') + '으로 진행합니다.');
+        } else {
+          applyNick(name);
+        }
+      }
+    }
+    updateNickInfo();
+
+    score = scoreInf ? 1000000000 : 0;
+    scoreBeforeInf = 0;
+    time = GAME_TIME; playing = true;
+    escaped = false; refusing = false; held = false; sleeping = false;
+    bossActive = false; cakeMode = false; cakeSized = false; sweatMode = false;
+    cakeUsed = false; gunUsed = false;            // 한 판에 한 번씩 다시 사용 가능
+    usedInf = unlimited || scoreInf;
+    escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0;
+    sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0; newsCount = 0; dumCount = 0; nyanCount = 0;
+    knifeCount = 0; ufoCount = 0; sweatCount = 0;
+    clearClones();
+    resetEffects();
+    stopBoost();
+    stopNyan();
+    stopKnife();
+    stopUfo();
+    clearTimeout(dumTimer);
+    clearTimeout(sweatStayTimer);
+    dumPhase = null; dumFast = false;
+    renderScore(); showTime();
+    escCountEl.textContent = 0; refCountEl.textContent = 0; cloneCountEl.textContent = 0;
+    rotCountEl.textContent = 0; handCountEl.textContent = 0;
+    sleepCountEl.textContent = 0; fakeCountEl.textContent = 0;
+    bossCountEl.textContent = 0; gunCountEl.textContent = 0; newsCountEl.textContent = 0;
+    dumCountEl.textContent = 0; nyanCountEl.textContent = 0;
+    knifeCountEl.textContent = 0; ufoCountEl.textContent = 0; sweatCountEl.textContent = 0;
+    cat.style.width = '80px';
+    cat.style.height = '80px';
+    cat.classList.remove('angry', 'hit', 'gun', 'held', 'color', 'boss', 'cake', 'threat', 'sweat');
+    showAngryFace(false);
+    renderShop();
+
+    // 뉴스 초기화: 시작 7%, 매초 굴림
+    newsChance = NEWS_START;
+    newsRateEl.textContent = Math.round(newsChance * 100);
+    newsText.textContent = '속보 대기 중...';
+    newsBadge.textContent = '';
+    clearInterval(newsTimer);
+    newsTimer = setInterval(newsTick, 1000);
+
+    // 당황 고양이: 고양이를 누르지 않은 시간을 0.5초마다 확인
+    lastTap = Date.now();
+    clearInterval(sweatTimer);
+    sweatTimer = setInterval(checkSweat, 500);
+
+    playBgm(true);
+    overlay.style.display = 'none';
+    moveCat();
+    clearInterval(clockTimer);
+    clockTimer = setInterval(() => {
+      if (unlimited) return; // 무제한이면 시간이 줄지 않음
+      time--;
+      showTime();
+      if (time <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame(reason) {
+    playing = false;
+    held = false;
+    sleeping = false;
+    bossActive = false;
+    cakeMode = false;
+    cakeSized = false;
+    sweatMode = false;
+    stopBgm();
+    stopBoost();
+    stopNyan();
+    stopKnife();
+    stopUfo();
+    clearInterval(sweatTimer);
+    clearTimeout(sweatStayTimer);
+    clearTimeout(dumTimer);
+    dumPhase = null; dumFast = false;
+    clearInterval(newsTimer);
+    clearInterval(clockTimer);
+    clearTimeout(moveTimer);
+    clearClones();
+    resetEffects();
+    cat.style.display = 'none';
+    cat.classList.remove('gun', 'angry', 'hit', 'held', 'boss', 'cake', 'threat', 'sweat');
+    showAngryFace(false);
+    renderShop();
+    if (!usedInf) { try { localStorage.setItem('catLast', String(score)); } catch (e) {} }
+    let extra = '';
+    if (score > best && !usedInf) {
+      best = score;
+      bestEl.textContent = best;
+      try { localStorage.setItem('catBest', best); } catch (e) {}
+      extra = '<br>최고 기록을 경신하셨네요.';
+    }
+    if (usedInf) extra += '<br>무제한/개발자 기능을 사용하여 랭킹에 등록되지 않았습니다.';
+    msg.innerHTML = (reason || '시간이 종료되었습니다.') +
+      '<br>고양이를 <b>' + (scoreInf ? '∞' : score) + '</b>점 획득하셨네요.' + extra + '<br><span id="rankNote"></span>';
+    document.getElementById('start').textContent = '다시 시작';
+    overlay.style.display = 'flex';
+    updateNickInfo();
+    startIdleTimer(); // 시작 화면으로 돌아왔으므로 대기 시간 측정
+
+    // 점수 등록 후 내 순위 표시 (전체 순위는 랭킹 페이지에서 확인)
+    (async () => {
+      const note = document.getElementById('rankNote');
+      try {
+        if (!usedInf && score > 0) {
+          const dup = await submitEntry('score', 'score', score);
+          const vis = visibleSorted(toList(await dbGet('score'), 'score'), 'score');
+          const idx = vis.findIndex(e => e.cid === cid);
+          let t = '';
+          if (idx >= 0) t = '현재 랭킹 ' + (idx + 1) + '위입니다.';
+          if (dup) t += ' 이미 사용 중인 닉네임이라 익명으로 등록되었습니다.';
+          if (note) note.textContent = t;
+        }
+      } catch (e) {
+        if (note) note.textContent = '랭킹 서버에 연결하지 못했습니다.';
+      }
+    })();
+  }
+
+  startIdleTimer(); // 페이지를 열자마자 대기 시간 측정 시작
+  window.__catReady = true; // 여기까지 오류 없이 실행되었다는 표시
 </script>
 </body>
 </html>
