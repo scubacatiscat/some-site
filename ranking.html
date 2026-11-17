@@ -36,8 +36,10 @@
   .plist td.goldname { color:var(--gold); font-weight:900; text-shadow:0 0 6px rgba(255,200,0,.55); }
   .plist .note { text-align:center; padding:10px; font-size:.85rem; }
 
-  /* 우승자 액자 */
-  #champ { text-align:center; }
+  /* 우승자 액자 (누르면 치워짐) */
+  #champWrap { text-align:center; }
+  #champ { text-align:center; cursor:pointer; transition:transform .35s, opacity .35s; }
+  #champ.off { transform:translateY(40px) rotate(8deg); opacity:0; }
   #champ img.frame { width:100%; max-width:220px; height:auto; display:block; margin:0 auto; }
   .gold { padding:14px; background:linear-gradient(135deg,#f5d77a,#b8860b 45%,#f5d77a 70%,#8a6508);
     box-shadow:0 4px 12px rgba(0,0,0,.35); }
@@ -47,9 +49,41 @@
   .gold .inner .big { font-size:4rem; }
   .cap { margin-top:8px; font-weight:700; font-size:.9rem; line-height:1.5; }
 
+  /* 인터넷 익스플로전 */
+  #ieBtn { display:none; background:transparent; color:var(--fg); border:0; padding:0; cursor:pointer; margin:0 auto; }
+  .ieIcon { position:relative; width:120px; height:120px; margin:0 auto 6px; border-radius:50% !important;
+    background:radial-gradient(circle at 35% 30%, #5fb4ff, #0a55b8); display:flex; align-items:center;
+    justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.35); }
+  .ieIcon .e { font-size:4.4rem; font-weight:900; color:#fff; font-family:Georgia,serif; line-height:1; }
+  .ieIcon .boom { position:absolute; right:-8px; top:-10px; font-size:2.4rem; }
+  .ieLabel { font-weight:800; font-size:.95rem; }
+  .ieBlink { animation:ieb .9s ease-in-out infinite alternate; }
+  @keyframes ieb { from { transform:scale(1); } to { transform:scale(1.06); } }
+
+  #ieWin { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:100; display:none; align-items:center;
+    justify-content:center; padding:12px; }
+  #ieWin.open { display:flex; }
+  .ieBox { width:min(640px,100%); max-height:90vh; display:flex; flex-direction:column; background:#fff; color:#202124;
+    border:3px solid #0a55b8; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .ieTitle { background:linear-gradient(#2a7cf0,#0a55b8); color:#fff; padding:6px 10px; display:flex;
+    justify-content:space-between; align-items:center; font-weight:700; font-size:.9rem; }
+  .ieTitle button { background:#d32f2f; color:#fff; border:0; padding:2px 10px; font-size:.9rem; }
+  .ieBody { padding:14px; overflow:auto; }
+  .ieHead { font-size:1.6rem; font-weight:900; font-family:Georgia,serif; margin-bottom:10px; }
+  .ieBar { display:flex; align-items:center; gap:10px; border:1px solid #dfe1e5; box-shadow:0 1px 6px rgba(32,33,36,.18);
+    border-radius:24px !important; padding:6px 16px; margin-bottom:14px; position:relative; }
+  .ieBar button { background:transparent; color:#202124; border:0; padding:0 6px; font-size:1.7rem; line-height:1; font-weight:400; }
+  .ieBar .tk { margin-left:auto; font-size:.95rem; }
+  .gainTk { position:absolute; left:18px; top:-6px; color:#0a55b8; font-weight:900; animation:gt .7s ease-out forwards; pointer-events:none; }
+  @keyframes gt { from { transform:translateY(0); opacity:1; } to { transform:translateY(-30px); opacity:0; } }
+  .codeRow { border-bottom:1px solid #e0e0e0; padding:8px 2px; }
+  .codeRow b { display:inline-block; background:#fff3b0; padding:0 6px; margin-right:6px; font-family:monospace; }
+  .codeRow .ex { color:#b00020; font-weight:700; margin-left:6px; }
+  .codeRow .d { color:#4d5156; font-size:.9rem; margin-top:2px; }
+
   @media (max-width: 760px) {
     .grid { grid-template-columns:1fr; }
-    #champ { order:-1; max-width:240px; margin:0 auto; }
+    #champWrap { order:-1; max-width:240px; margin:0 auto; }
   }
 </style>
 <script>
@@ -81,7 +115,13 @@
       <div class="plist" id="listScore"></div>
     </section>
 
-    <div id="champ"></div>
+    <div id="champWrap">
+      <div id="champ"></div>
+      <button id="ieBtn" class="ieBlink">
+        <div class="ieIcon"><span class="e">e</span><span class="boom">💥</span></div>
+        <div class="ieLabel">Internet Explosion</div>
+      </button>
+    </div>
 
     <section>
       <div class="ptitle">pop cat top 15</div>
@@ -89,18 +129,45 @@
     </section>
   </div>
 
+  <!-- 캣피디아 (인터넷 익스플로전) -->
+  <div id="ieWin">
+    <div class="ieBox">
+      <div class="ieTitle"><span>Internet Explosion — 캣피디아</span><button id="ieClose">✕</button></div>
+      <div class="ieBody">
+        <div class="ieHead">캣피디아</div>
+        <div class="ieBar">
+          <button id="iePlus" title="인터넷 토큰 받기">+</button>
+          <span>+ 버튼을 누르면 인터넷 토큰을 얻습니다</span>
+          <span class="tk">토큰 <b id="ieTokens">0</b></span>
+        </div>
+        <div id="ieList"></div>
+      </div>
+    </div>
+  </div>
+
 <script>
-  // 랭킹 서버 (index.html의 DB, RANK_ROOT와 항상 같게 유지할 것)
+  // 랭킹 서버 (index.html의 DB, RANK_ROOT, POP_BOARD와 항상 같게 유지할 것)
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
   const RANK_ROOT = 'ranks/s2';
+  const POP_BOARD = 'pop2';  // pop 랭킹 구역 (초기화된 새 구역)
   const REPORT_LIMIT = 3;   // 이 인원 이상이 신고하면 숨김
-  const RANK_MAX = 20;      // 표시 인원
+  const RANK_MAX = 15;      // 표시 인원
 
   // 1대 우승자 액자: 아래 목록을 앞에서부터 찾음 (둘 다 없으면 금색 액자로 대신 표시)
   const FRAME_IMGS = ['frame.png', '스크린샷_2026-11-16_164819.png'];
   const CHAMP_IMG = 'champion.png';       // 기본 액자 안에 넣을 그림 (없으면 🏆)
   const CHAMP_TITLE = '1대 catch cat 우승자';
   const CHAMP_NAME = '';                  // 기본 액자를 쓸 때 우승자 닉네임을 여기에 적으십시오
+
+  // 캣피디아에 나오는 코드 설명 [저장 이름(코드 관리와 같음), 입력하는 코드, 설명]
+  const CODE_INFO = [
+    ['dog', 'dog', '강아지가 고양이를 따라다니며 3대 때리고 사라집니다. 게임 시작 전에도 입력할 수 있습니다.'],
+    ['moai', '모아이', '모아이가 등장하여 고양이를 15초에 한 번씩 때립니다.'],
+    ['botcat', 'bot cat', '고양이가 4초 동안 연산한 뒤, 원래 속도의 5배로 4초간 빨라집니다.'],
+    ['x', 'x', '고양이가 사라집니다.'],
+    ['noover', 'no_over', '게임 시간이 3초 늘어납니다. (영구)'],
+    ['superpop', 'super pop', '사용 시 pop을 1.5배로 10초간 유지합니다. (pop을 얻을 때 적용)']
+  ];
 
   let cid = '';
   try { cid = localStorage.getItem('catCid') || ''; } catch (e) {}
@@ -234,9 +301,66 @@
     fi.src = FRAME_IMGS[0];
   }
 
+  // 액자를 누르면 치워지고, 그 뒤에서 인터넷 익스플로전이 나타남
+  const champEl = document.getElementById('champ');
+  const ieBtn = document.getElementById('ieBtn');
+  champEl.addEventListener('click', () => {
+    champEl.classList.add('off');
+    setTimeout(() => { champEl.style.display = 'none'; ieBtn.style.display = 'block'; }, 380);
+  });
+
+  // 캣피디아 창
+  const ieWin = document.getElementById('ieWin');
+  const ieList = document.getElementById('ieList');
+  const ieTokensEl = document.getElementById('ieTokens');
+  let tokens = num('catToken');
+  ieTokensEl.textContent = tokens.toLocaleString();
+
+  async function loadExpiry() {
+    try {
+      const r = await fetch(DB + '/' + RANK_ROOT + '/codes.json');
+      if (!r.ok) return {};
+      return (await r.json()) || {};
+    } catch (e) { return {}; }
+  }
+  async function openIe() {
+    ieWin.classList.add('open');
+    ieList.innerHTML = '';
+    const codes = await loadExpiry();
+    CODE_INFO.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'codeRow';
+      const head = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = c[1];
+      head.appendChild(b);
+      const exp = codes[c[0]];
+      if (exp && typeof exp.exp === 'number' && Date.now() > exp.exp) {
+        const x = document.createElement('span'); x.className = 'ex'; x.textContent = '(만료됨)';
+        head.appendChild(x);
+      }
+      const d = document.createElement('div'); d.className = 'd'; d.textContent = c[2];
+      row.appendChild(head); row.appendChild(d);
+      ieList.appendChild(row);
+    });
+  }
+  ieBtn.addEventListener('click', openIe);
+  document.getElementById('ieClose').addEventListener('click', () => { ieWin.classList.remove('open'); });
+
+  // + 버튼: 인터넷 토큰 획득
+  document.getElementById('iePlus').addEventListener('click', () => {
+    tokens++;
+    try { localStorage.setItem('catToken', String(tokens)); } catch (e) {}
+    ieTokensEl.textContent = tokens.toLocaleString();
+    const g = document.createElement('span');
+    g.className = 'gainTk';
+    g.textContent = '+1';
+    document.querySelector('.ieBar').appendChild(g);
+    setTimeout(() => { g.remove(); }, 700);
+  });
+
   function loadAll() {
     renderBoard('score', 'score', '점', document.getElementById('listScore'));
-    renderBoard('pop', 'pop', ' pop', document.getElementById('listPop'));
+    renderBoard(POP_BOARD, 'pop', ' pop', document.getElementById('listPop'));
   }
   document.getElementById('refresh').addEventListener('click', loadAll);
 
