@@ -39,6 +39,7 @@
   body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
     display:flex; flex-direction:column; align-items:center; padding:16px;
     -webkit-user-select:none; user-select:none; }
+  body.devOn { padding-top:42px; }
   h1 { margin:4px 0 8px; font-size:1.6rem; letter-spacing:.05em; }
   .bar { display:flex; gap:12px; margin-bottom:8px; font-weight:700; }
   .bar div { background:var(--card); padding:6px 14px; }
@@ -67,12 +68,13 @@
   #face .emoji, .clone .cface .emoji { font-size:3.2rem; line-height:1; display:flex; align-items:center;
     justify-content:center; width:100%; height:100%; }
   #cat.hit { opacity:.3; }
-  #cat.angry #face, #cat.threat #face { animation:shake .1s linear infinite; }
+  #cat.angry #face, #cat.threat #face, #cat.hurt #face { animation:shake .1s linear infinite; }
   @keyframes shake { 0%,100% { transform:translateX(-6px); } 50% { transform:translateX(6px); } }
   #bubble { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:6px;
     display:none; white-space:nowrap; background:var(--bg); color:var(--fg); border:2px solid var(--fg);
     padding:4px 10px; font-size:.85rem; font-weight:700; pointer-events:none; }
-  #cat.angry #bubble, #cat.gun #bubble, #cat.cake #bubble, #cat.threat #bubble, #cat.sweat #bubble { display:block; }
+  #cat.angry #bubble, #cat.gun #bubble, #cat.cake #bubble, #cat.threat #bubble, #cat.sweat #bubble,
+  #cat.hurt #bubble, #cat.say #bubble, #cat.bot #bubble, #cat.hood #bubble { display:block; }
 
   /* 보스 체력 / 케이크 */
   #hp { position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:4px; display:none;
@@ -99,6 +101,13 @@
   #gunHand .emoji { font-size:3rem; display:flex; justify-content:center; align-items:center; height:100%; }
   #cat.threat #gunHand { display:block; }
 
+  /* pin: 고양이에 꽂힌 핀 */
+  #pinMark { position:absolute; left:50%; top:-26px; width:34px; transform:translateX(-50%); display:none;
+    pointer-events:none; z-index:6; }
+  #pinMark img { width:100%; height:auto; display:block; }
+  #pinMark .emoji { font-size:1.6rem; display:block; text-align:center; }
+  #cat.pinned #pinMark { display:block; }
+
   /* UFO (느낌표 → 1.1초 뒤 UFO) */
   #exclam { position:absolute; width:40px; display:none; z-index:7; pointer-events:none;
     animation:bob .25s ease-in-out infinite alternate; }
@@ -109,6 +118,24 @@
   #ufo.in { animation:ufoIn .25s ease-out; }
   #ufo.tap { transform:scale(.94); }
   @keyframes ufoIn { from { transform:translateY(-20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+
+  /* 후드냥이 나가는 문 / 강아지 / 모아이 / 좀비냥 / X 표시 */
+  #door { position:absolute; right:0; top:50%; transform:translateY(-50%); height:150px; display:none; z-index:3;
+    pointer-events:none; }
+  #door img { height:100%; width:auto; display:block; }
+  #door .emoji { font-size:5rem; display:block; }
+  #dog { position:absolute; display:none; z-index:8; font-size:2.6rem; line-height:1; pointer-events:none; }
+  #dog.bite { animation:bite .25s ease-out; }
+  @keyframes bite { 50% { transform:scale(1.4) rotate(-15deg); } }
+  #moai { position:absolute; display:none; z-index:8; width:72px; pointer-events:none; }
+  #moai img { width:100%; height:auto; display:block; }
+  #moai .emoji { font-size:3rem; display:block; text-align:center; }
+  #moai.smash { animation:bite .3s ease-out; }
+  .zombie { position:absolute; width:56px; z-index:6; cursor:pointer; touch-action:manipulation; }
+  .zombie img { width:100%; height:auto; display:block; pointer-events:none; }
+  .zombie .emoji { font-size:2.6rem; display:block; text-align:center; }
+  #xmark { position:absolute; display:none; z-index:6; font-size:4rem; font-weight:900; color:#d00;
+    pointer-events:none; line-height:1; }
 
   /* 칼 고양이: 점수 칸으로 날아감 */
   #knife { position:fixed; display:none; z-index:45; width:90px; pointer-events:none; }
@@ -151,6 +178,7 @@
 
   /* 퀘스트 두루마리 */
   #quest { position:fixed; top:8px; left:8px; z-index:20; width:290px; }
+  body.devOn #quest { top:36px; }
   #questIcon { width:44px; height:44px; cursor:pointer; display:block; }
   #questIcon img { width:100%; height:100%; object-fit:contain; display:block;
     image-rendering:pixelated; pointer-events:none; }
@@ -167,11 +195,18 @@
     font-size:16px; outline:none; -webkit-user-select:text; user-select:text; }
   #toast { position:fixed; right:8px; bottom:78px; z-index:60; max-width:260px; display:none;
     padding:8px 12px; background:var(--card); font-weight:700; font-size:.9rem; line-height:1.5; }
+  #warnBox { position:fixed; left:50%; top:60px; transform:translateX(-50%); z-index:200; width:min(520px,92vw);
+    background:#b00020; color:#fff; padding:12px 16px; font-weight:800; line-height:1.5; text-align:center;
+    border:3px solid #fff; display:none; }
 
-  /* 3초간 시작하지 않으면 나타나는 사진 (오른쪽 위) */
-  #idle { position:fixed; right:8px; top:8px; z-index:15; width:64px; display:none; pointer-events:none; }
+  /* 3초간 시작하지 않으면 나타나는 사진 (오른쪽 위) - 누르면 티캣이 말함 */
+  #idle { position:fixed; right:8px; top:8px; z-index:15; width:64px; display:none; cursor:pointer; }
+  body.devOn #idle { top:36px; }
   #idle img { width:100%; height:auto; display:block; border:2px solid var(--fg); }
   #idle .emoji { font-size:2.4rem; display:block; text-align:center; }
+  #idleSay { position:fixed; right:8px; top:80px; z-index:16; max-width:210px; background:var(--bg); color:var(--fg);
+    border:2px solid var(--fg); padding:6px 10px; font-size:.85rem; font-weight:700; line-height:1.4; display:none; }
+  body.devOn #idleSay { top:108px; }
 
   /* 나무 (tree 코드) */
   #tree { display:none; margin-top:12px; }
@@ -192,12 +227,33 @@
   #devPanel.open { display:block; }
   #devLeft { position:fixed; left:18px; top:270px; z-index:25; width:215px; }
   #devRight { position:fixed; right:8px; top:44px; z-index:25; width:150px; max-height:calc(100vh - 140px); overflow:auto; }
+  body.devOn #devRight { top:74px; }
   .drow { display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--card);
     padding:5px 10px; margin-bottom:6px; font-size:.78rem; font-weight:700; }
   .drow button { background:#fff; color:#111; border:0; padding:4px 12px; font-size:.78rem; min-height:26px; }
   .drow input { flex:1; min-width:0; background:#fff; color:#111; border:0; padding:5px 8px; font-size:.8rem;
     -webkit-user-select:text; user-select:text; }
   .devclose { display:none; }
+
+  /* 억까 소식 띠 (개발자 모드에서만 보임) */
+  #feedBar { position:fixed; top:0; left:0; right:0; height:26px; z-index:35; background:var(--card);
+    border-bottom:2px solid #8a4fff; display:none; overflow:hidden; white-space:nowrap; font-size:.85rem;
+    font-weight:700; line-height:24px; }
+  body.devOn #feedBar { display:block; }
+  #feedText { display:inline-block; padding-left:100%; animation:marq 40s linear infinite; }
+  @keyframes marq { from { transform:translateX(0); } to { transform:translateX(-100%); } }
+
+  /* 코드 관리 창 (개발자 모드) */
+  #codeMgr { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:70; width:min(580px,94vw);
+    max-height:72vh; overflow:auto; background:var(--bg); border:3px solid #8a4fff; padding:10px; display:none; }
+  #codeMgr.open { display:block; }
+  #codeMgr h3 { margin:0 0 8px; font-size:1rem; }
+  .cmrow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; background:var(--card); padding:6px 8px;
+    margin-bottom:6px; font-size:.82rem; font-weight:700; }
+  .cmrow .nm { min-width:96px; font-family:monospace; }
+  .cmrow .lb { flex:1; min-width:140px; }
+  .cmrow .st { min-width:130px; }
+  .cmrow button { padding:4px 8px; font-size:.75rem; min-height:26px; }
 
   /* 팝 캣 + 상점 (popcat 코드) */
   #dock { position:fixed; left:8px; bottom:8px; z-index:18; display:none; align-items:flex-end; gap:8px; }
@@ -209,6 +265,8 @@
   #popFace { font-size:3.5rem; line-height:1.2; }
   #pop .popCnt { font-weight:900; font-size:1rem; background:var(--card); padding:3px 6px; margin-top:4px; }
   .popLv { background:var(--card); font-weight:700; font-size:.78rem; padding:3px 4px; margin-top:3px; text-align:center; }
+  #superTxt { background:#ff9800; color:#111; font-weight:800; font-size:.72rem; padding:2px 4px; margin-top:3px;
+    text-align:center; display:none; }
   #upPop { width:100%; margin-top:3px; padding:6px 0; font-size:.78rem; min-height:32px; }
   .gain { position:absolute; left:50%; top:20%; font-weight:900; font-size:1.3rem; color:#e65100;
     text-shadow:0 0 3px #fff; pointer-events:none; animation:gain .6s ease-out forwards; }
@@ -266,25 +324,28 @@
     #devPanel.open { position:fixed; left:0; right:0; bottom:calc(62px + env(safe-area-inset-bottom)); max-height:58vh;
       overflow:auto; z-index:30; background:var(--bg); border-top:3px solid #8a4fff; padding:8px; }
     #devLeft, #devRight { position:static; width:auto; max-height:none; overflow:visible; }
+    body.devOn #devRight { top:auto; }
     .devclose { display:block; width:100%; padding:8px; font-size:.9rem; margin-bottom:8px; }
   }
 
   /* 폰 / 좁은 화면: 코드창을 맨 아래 전체 폭으로, 상점은 그 위로 */
   @media (max-width: 640px) {
     body { padding:10px 10px 76px; }
+    body.devOn { padding-top:42px; }
     body.dockOpen { padding-bottom:250px; }
     #code { left:0; right:0; bottom:0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); }
     #codeInput { flex:1; width:auto; min-width:0; }
     #dock { left:4px; bottom:calc(68px + env(safe-area-inset-bottom)); gap:4px; }
-    #popCol { width:76px; }
-    #pop .popCnt { font-size:.85rem; }
-    .popLv { font-size:.66rem; }
-    #upPop { font-size:.7rem; min-height:34px; }
-    #shop { gap:4px; }
-    .sitem { width:66px; }
-    .sitem .price, .sitem .sname { font-size:.72rem; }
-    .sitem .spic { height:54px; }
-    .sacts button { font-size:.72rem; min-height:34px; }
+    #popCol { width:70px; }
+    #pop .popCnt { font-size:.8rem; }
+    .popLv { font-size:.62rem; }
+    #superTxt { font-size:.62rem; }
+    #upPop { font-size:.66rem; min-height:34px; }
+    #shop { gap:3px; }
+    .sitem { width:62px; }
+    .sitem .price, .sitem .sname { font-size:.66rem; padding:3px 2px; }
+    .sitem .spic { height:50px; }
+    .sacts button { font-size:.66rem; min-height:34px; }
     #toast { left:8px; right:8px; max-width:none; bottom:calc(74px + env(safe-area-inset-bottom)); }
     body.dockOpen #toast { bottom:250px; }
     #newsPic { width:92px; }
@@ -295,6 +356,8 @@
 </style>
 </head>
 <body>
+  <div id="feedBar"><span id="feedText">억까 소식을 불러오는 중...</span></div>
+
   <div id="quest">
     <div id="questIcon"></div>
     <div id="questText">
@@ -310,6 +373,9 @@
       칼 고양이가 점수를 깎은 횟수: <span id="knifeCount">0</span>번 (확률 0.3%)<br>
       UFO가 나타난 횟수: <span id="ufoCount">0</span>번 (확률 0.12%)<br>
       당황한 고양이가 나온 횟수: <span id="sweatCount">0</span>번 (10초 동안 누르지 않으면)<br>
+      후드냥이 나타난 횟수: <span id="hoodCount">0</span>번 (확률 0.125%)<br>
+      좀비냥이 나타난 횟수: <span id="zombieCount">0</span>번 (확률 0.08%)<br>
+      똑똑한 고양이가 나타난 횟수: <span id="smartCount">0</span>번 (확률 0.4%)<br>
       보스 고양이가 나타난 횟수: <span id="bossCount">0</span>번 (확률 0.1%)<br>
       고양이가 총을 든 횟수: <span id="gunCount">0</span>번 (확률 0.12%)<br>
       뉴스 속보가 나온 횟수: <span id="newsCount">0</span>번 (현재 확률 <span id="newsRate">7</span>%)
@@ -324,7 +390,11 @@
   </div>
   <div id="boost"><div id="boostFill"></div><span id="boostTxt"></span></div>
   <div id="field">
-    <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="gunHand"></div><div id="hp"></div><div id="cake">🎂</div></div>
+    <div id="cat"><div id="face"></div><div id="bubble"></div><div id="hand"></div><div id="gunHand"></div><div id="pinMark"></div><div id="hp"></div><div id="cake">🎂</div></div>
+    <div id="door"></div>
+    <div id="dog">🐕</div>
+    <div id="moai"></div>
+    <div id="xmark">✖</div>
     <div id="exclam"></div>
     <div id="ufo"></div>
     <div id="overlay">
@@ -361,8 +431,15 @@
       <div class="drow"><span>뉴스 속보 바꾸기</span><input id="devNews" type="text" placeholder="(속보를 바꿔주세요)"></div>
       <div class="drow"><span>제한 시간 inf</span><button id="devInfTime">실행</button></div>
       <div class="drow"><span>점수 inf</span><button id="devInfScore">실행</button></div>
+      <div class="drow"><span>코드 관리</span><button id="devCodes">열기</button></div>
     </div>
     <div id="devRight"></div>
+  </div>
+
+  <div id="codeMgr">
+    <h3>코드 관리 (보기 / 만료 / 기한 연장)</h3>
+    <div id="cmList"></div>
+    <button id="cmClose" class="sub small">닫기</button>
   </div>
 
   <div id="dock">
@@ -373,6 +450,7 @@
         <div class="popCnt">pop <span id="popCount">0</span></div>
       </div>
       <div class="popLv" id="popLvTxt"></div>
+      <div id="superTxt"></div>
       <button id="upPop">UP</button>
     </div>
     <div id="shop">
@@ -387,6 +465,18 @@
         <div class="spic" id="gunPic"></div>
         <div class="sname">gun <span id="gunOwn"></span></div>
         <div class="sacts"><button id="buyGun">구매</button><button id="useGun">사용</button></div>
+      </div>
+      <div class="sitem">
+        <div class="price" id="pricePin">7,500pop</div>
+        <div class="spic" id="pinPic"></div>
+        <div class="sname">pin <span id="pinOwn">×0</span></div>
+        <div class="sacts"><button id="buyPin">구매</button><button id="usePin">사용</button></div>
+      </div>
+      <div class="sitem">
+        <div class="price" id="priceRemote">12,000pop</div>
+        <div class="spic" id="remotePic"></div>
+        <div class="sname">리모컨 <span id="remoteOwn"></span></div>
+        <div class="sacts"><button id="buyRemote">구매</button><button id="useRemote">사용</button></div>
       </div>
     </div>
   </div>
@@ -412,6 +502,8 @@
   </div>
 
   <div id="idle"></div>
+  <div id="idleSay"></div>
+  <div id="warnBox"></div>
   <div id="toast"></div>
   <div id="code">
     <div class="label">code</div>
@@ -419,6 +511,13 @@
   </div>
 
 <script>
+  // 파일 이름 뒤에 _1 또는 (1)이 붙은 경우까지 차례로 찾는 목록을 만들어 줌
+  function vr(f) {
+    const i = f.lastIndexOf('.');
+    const b = f.slice(0, i), e = f.slice(i);
+    return [f, b + '_1' + e, b + ' (1)' + e];
+  }
+
   // 올린 사진 파일 이름 (대소문자, 확장자 똑같이)
   const CAT_IMG = '16.jpg';
   const ANGRY_IMG = '22.gif';
@@ -447,6 +546,13 @@
                     '1c08c729f648cfd14070e46f8e0e7554-removebg-preview (1).png',
                     '1c08c729f648cfd14070e46f8e0e7554-removebg-preview.png'];
   const EXCLAM_IMGS = ['느낌표-removebg-preview_1.png', '느낌표-removebg-preview (1).png', '느낌표-removebg-preview.png'];
+  const PIN_IMGS = vr('pin.png');
+  const REMOTE_IMGS = vr('리모콘-removebg-preview.png');
+  const MOAI_IMGS = vr('모아이-removebg-preview.png');
+  const SMART_IMGS = vr('고지식하냥이-removebg-preview.png');
+  const ZOMBIE_IMGS = vr('좀비냥-removebg-preview.png');
+  const HOOD_IMGS = vr('후드냥-removebg-preview.png');
+  const DOOR_IMGS = vr('문.png');
   const BGM_FILES = ['zec53-piano-and-strings-ambient-confident-and-light-full-633882.mp3', 'bgm.mp3'];
   const BGM_VOLUME = 0.4;       // 0~1
 
@@ -515,10 +621,13 @@
   const DB = 'https://catch-cat-a1fd1-default-rtdb.asia-southeast1.firebasedatabase.app';
   const RANK_ROOT = 'ranks/s2';
   const RANK_PAGE = 'ranking.html';
+  const POP_BOARD = 'pop2';     // pop 랭킹 구역 (이름을 바꾸면 pop 랭킹이 초기화됨. ranking.html과 같게 유지)
+  const POP_SEASON = 'p2';      // 이 값이 바뀌면 모든 접속자의 pop이 처음 열 때 0으로 초기화됨
   const REPORT_LIMIT = 3;       // 이 인원 이상이 신고하면 랭킹에서 숨김
 
   const IDLE_TIME = 3000;      // 시작하지 않고 기다리면 사진이 나오는 시간 (3초)
   const GAME_TIME = 60;        // 제한 시간(초)
+  const NO_OVER_BONUS = 3;     // no_over 코드로 영구히 늘어나는 시간(초)
   const MIN_SIZE = 30, MAX_SIZE = 160;
   const SLOW = 2.5;            // 이동 간격 배수 (클수록 느려짐)
   const ESCAPE_CHANCE = 0.01;  // 박스 탈출 확률 1%
@@ -576,16 +685,50 @@
   const UFO_BOOST_SCORE = 5;   // bust 적용 중 UFO를 한 번 누를 때 점수
   const UFO_W = 120;           // UFO 가로 크기
 
+  // 후드냥 / 좀비냥 / 똑똑한 고양이
+  const HOOD_CHANCE = 0.00125; // 후드냥 확률 0.125% (이동 1회당)
+  const HOOD_CLICKS = 5;       // 문으로 나가는 것을 막으려면 눌러야 하는 횟수
+  const HOOD_MIN = 3000, HOOD_MAX = 5000; // 문까지 걸어가는 시간 (3~5초 사이 랜덤)
+  const HOOD_PENALTY = 5;      // 후드냥이 문으로 나가면 깎이는 점수
+  const ZOMBIE_CHANCE = 0.0008;// 좀비냥 확률 0.08% (이동 1회당)
+  const ZOMBIE_COUNT = 5;      // 좀비냥 수
+  const ZOMBIE_SPEED = 60;     // 좀비냥이 다가오는 속도 (px/초)
+  const ZOMBIE_TOUCH = 38;     // 좀비냥이 고양이에게 닿았다고 보는 거리 (px)
+  const SMART_CHANCE = 0.004;  // 똑똑한 고양이 확률 0.4% (이동 1회당)
+  const SMART_TIME = 3000;     // 똑똑한 고양이 지속 시간 (3초)
+  const SMART_POP = 10;        // 똑똑한 고양이를 누를 때 얻는 pop
+
+  // 코드로 부르는 이벤트 (강아지 / 모아이 / bot cat / x / super pop)
+  const HIT_STUN = 1200;       // 강아지·모아이에게 맞으면 이 시간 동안 고양이를 누를 수 없음 (ms)
+  const DOG_HITS = 3;          // 강아지가 때리는 횟수
+  const DOG_SPEED = 170;       // 강아지가 따라가는 속도 (px/초)
+  const DOG_RANGE = 40;        // 강아지가 때릴 수 있는 거리 (px)
+  const DOG_HIT_GAP = 1100;    // 강아지가 때리는 간격 (ms)
+  const MOAI_GAP = 15000;      // 모아이가 때리는 간격 (15초)
+  const BOT_CALC = 4000;       // bot cat: 연산하는 시간 (4초)
+  const BOT_FAST = 4000;       // bot cat: 빨라지는 시간 (4초)
+  const BOT_MUL = 5;           // bot cat: 원래 속도의 5배
+  const X_TIME = 5000;         // x 코드로 고양이가 사라지는 시간 (5초)
+  const SUPER_MUL = 1.5;       // super pop: pop 배수
+  const SUPER_TIME = 10000;    // super pop: 지속 시간 (10초)
+
   // 상점 / 팝 캣
   const BUST_PRICE = 300;      // bust 가격 (pop)
-  const BOOST_TIME = 5000;     // bust 지속 시간 (5초)
+  const BOOST_TIME = 5000;     // bust 1회 지속 시간 (5초, 쓸 때마다 시간이 더해짐)
   const BOOST_MUL = 3;         // bust 적용 중 고양이를 잡을 때 얻는 점수
+  const BOOST_MAX_USES = 15;   // bust를 한 판에 사용할 수 있는 횟수
   const GUN_PRICE = 10000;     // gun 가격 (pop)
   const THREAT_SCORE = 8;      // gun으로 협박해서 얻는 점수
   const THREAT_TIME = 2000;    // 협박 장면이 유지되는 시간 (2초)
+  const PIN_PRICE = 7500;      // pin 가격 (pop)
+  const PIN_TIME = 2000;       // pin으로 고양이를 고정하는 시간 (2초)
+  const REMOTE_PRICE = 12000;  // 리모컨 가격 (pop)
+  const REMOTE_PER_GAME = 3;   // 리모컨으로 뉴스를 조작할 수 있는 횟수 (한 판당)
   const POP_MAX_LV = 5;        // 팝 캣 최대 레벨 (최대 레벨에서 한 번에 +5)
   const POP_UP_COST = [100, 400, 900, 2500]; // Lv1→2, 2→3, 3→4, 4→5 업그레이드 비용 (pop)
   const POP_SUBMIT_DELAY = 6000; // 마지막으로 누른 뒤 pop 랭킹에 올리기까지 기다리는 시간
+  const POP_FAST_LIMIT = 27;   // 1초에 이만큼 누르면 부정 클릭으로 봄
+  const POP_FAST_WINDOW = 1000;
 
   // 뉴스
   const NEWS_START = 0.07;     // 판이 시작할 때 뉴스 확률 (1초마다 굴림)
@@ -594,12 +737,32 @@
   const NEWS_GOOD_RATE = 0.5;  // 좋은 뉴스일 확률
   const NEWS_GOOD_SCORE = 3;   // 좋은 뉴스 점수
   const NEWS_BAD_SCORE = 1;    // 나쁜 뉴스 감점
+  const LOTTO_CHANCE = 0.000000008; // 로또 당첨 뉴스 확률 (0.0000008%, 확률표에는 표시하지 않음)
+  const LOTTO_SCORE = 500;     // 로또 당첨 뉴스 점수
+
+  const PRICES = { bust: BUST_PRICE, gun: GUN_PRICE, pin: PIN_PRICE, remote: REMOTE_PRICE };
 
   const REFUSE_LINES = [
     '귀찮습니다. 점수는 없습니다.',
     '짜증납니다. 거절합니다.',
     '싫습니다. 건드리지 마십시오.',
     '오늘은 영업하지 않습니다.'
+  ];
+
+  // 코드 관리(개발자 모드)에 나오는 코드 목록 [저장 이름, 입력하는 코드, 설명]
+  const CODE_DEFS = [
+    ['catke', 'catke', '케이크 고양이 (한 판에 한 번)'],
+    ['popcat', 'popcat / pop', '팝 캣과 상점'],
+    ['code', 'code', '개발자 고양이 (억까 효과 해제)'],
+    ['tree', 'tree', '나무'],
+    ['gold2s', 'gold2s', '랭킹 황금 닉네임'],
+    ['catgle', 'catgle', '캣굴'],
+    ['dog', 'dog', '강아지가 고양이를 3번 때리고 사라짐'],
+    ['moai', '모아이', '모아이가 15초에 한 번 고양이를 때림'],
+    ['botcat', 'bot cat', '4초 연산 후 4초간 5배 속도'],
+    ['x', 'x', '고양이가 사라짐'],
+    ['noover', 'no_over', '제한 시간 +3초 (영구)'],
+    ['superpop', 'super pop', 'pop 1.5배 (10초)']
   ];
 
   // 닉네임 금지어 (욕설 / 성적인 표현). 소문자, 공백·숫자·기호 제거 후 비교
@@ -618,8 +781,13 @@
   const bubble = document.getElementById('bubble');
   const handBox = document.getElementById('hand');
   const gunHand = document.getElementById('gunHand');
+  const pinMark = document.getElementById('pinMark');
   const hpEl = document.getElementById('hp');
   const cakeEl = document.getElementById('cake');
+  const door = document.getElementById('door');
+  const dog = document.getElementById('dog');
+  const moai = document.getElementById('moai');
+  const xmark = document.getElementById('xmark');
   const exclam = document.getElementById('exclam');
   const ufo = document.getElementById('ufo');
   const knife = document.getElementById('knife');
@@ -647,6 +815,9 @@
   const knifeCountEl = document.getElementById('knifeCount');
   const ufoCountEl = document.getElementById('ufoCount');
   const sweatCountEl = document.getElementById('sweatCount');
+  const hoodCountEl = document.getElementById('hoodCount');
+  const zombieCountEl = document.getElementById('zombieCount');
+  const smartCountEl = document.getElementById('smartCount');
   const bossCountEl = document.getElementById('bossCount');
   const gunCountEl = document.getElementById('gunCount');
   const newsCountEl = document.getElementById('newsCount');
@@ -660,7 +831,9 @@
   const codeBox = document.getElementById('code');
   const codeInput = document.getElementById('codeInput');
   const toast = document.getElementById('toast');
+  const warnBox = document.getElementById('warnBox');
   const idleBox = document.getElementById('idle');
+  const idleSay = document.getElementById('idleSay');
   const treeBox = document.getElementById('tree');
   const nickInput = document.getElementById('nick');
   const nickSave = document.getElementById('nickSave');
@@ -681,21 +854,33 @@
   const devRight = document.getElementById('devRight');
   const devClonesInput = document.getElementById('devClones');
   const devNewsInput = document.getElementById('devNews');
+  const feedText = document.getElementById('feedText');
+  const codeMgr = document.getElementById('codeMgr');
+  const cmList = document.getElementById('cmList');
   const dock = document.getElementById('dock');
   const popBox = document.getElementById('pop');
   const popImg = document.getElementById('popImg');
   const popFace = document.getElementById('popFace');
   const popCountEl = document.getElementById('popCount');
   const popLvTxt = document.getElementById('popLvTxt');
+  const superTxt = document.getElementById('superTxt');
   const upPopBtn = document.getElementById('upPop');
   const bustPic = document.getElementById('bustPic');
   const gunPic = document.getElementById('gunPic');
+  const pinPic = document.getElementById('pinPic');
+  const remotePic = document.getElementById('remotePic');
   const bustOwnEl = document.getElementById('bustOwn');
   const gunOwnEl = document.getElementById('gunOwn');
+  const pinOwnEl = document.getElementById('pinOwn');
+  const remoteOwnEl = document.getElementById('remoteOwn');
   const buyBustBtn = document.getElementById('buyBust');
   const useBustBtn = document.getElementById('useBust');
   const buyGunBtn = document.getElementById('buyGun');
   const useGunBtn = document.getElementById('useGun');
+  const buyPinBtn = document.getElementById('buyPin');
+  const usePinBtn = document.getElementById('usePin');
+  const buyRemoteBtn = document.getElementById('buyRemote');
+  const useRemoteBtn = document.getElementById('useRemote');
 
   // 시작 버튼을 가장 먼저 연결 (뒤쪽 코드에 문제가 있어도 눌리도록)
   document.getElementById('start').addEventListener('click', function () { startGame(); });
@@ -802,6 +987,29 @@
   loadFirst(ghimg, GUNITEM_IMGS, () => { gunHand.innerHTML = '<span class="emoji">🔫</span>'; });
   gunHand.appendChild(ghimg);
 
+  // pin / 리모컨 / 문 / 모아이 사진 (실패하면 이모지)
+  const pinShopImg = new Image();
+  loadFirst(pinShopImg, PIN_IMGS, () => { pinPic.innerHTML = '<span class="emoji">📌</span>'; });
+  pinPic.appendChild(pinShopImg);
+  const pinMarkImg = new Image();
+  loadFirst(pinMarkImg, PIN_IMGS, () => { pinMark.innerHTML = '<span class="emoji">📌</span>'; });
+  pinMark.appendChild(pinMarkImg);
+  const remoteImg = new Image();
+  loadFirst(remoteImg, REMOTE_IMGS, () => { remotePic.innerHTML = '<span class="emoji">📺</span>'; });
+  remotePic.appendChild(remoteImg);
+  const doorImg = new Image();
+  loadFirst(doorImg, DOOR_IMGS, () => { door.innerHTML = '<span class="emoji">🚪</span>'; });
+  door.appendChild(doorImg);
+  const moaiImg = new Image();
+  loadFirst(moaiImg, MOAI_IMGS, () => { moai.innerHTML = '<span class="emoji">🗿</span>'; });
+  moai.appendChild(moaiImg);
+
+  // 후드냥 / 똑똑한 고양이 / 좀비냥 사진 주소 (고양이 얼굴을 바꿔 끼울 때 사용)
+  let hoodSrc = null, smartSrc = null, zombieSrc = null;
+  resolveImg(HOOD_IMGS, (u) => { hoodSrc = u; });
+  resolveImg(SMART_IMGS, (u) => { smartSrc = u; });
+  resolveImg(ZOMBIE_IMGS, (u) => { zombieSrc = u; });
+
   // 냥캣 사진 (실패하면 이모지)
   let nyanOk = true;
   const nyimg = new Image();
@@ -887,17 +1095,28 @@
   let scoreInf = false, scoreBeforeInf = 0;     // 개발자 패널의 '점수 inf'
   let escaped = false, escCount = 0, refCount = 0, cloneCount = 0, rotCount = 0, handCount = 0;
   let sleepCount = 0, fakeCount = 0, bossCount = 0, gunCount = 0, newsCount = 0, dumCount = 0, nyanCount = 0;
-  let knifeCount = 0, ufoCount = 0, sweatCount = 0;
+  let knifeCount = 0, ufoCount = 0, sweatCount = 0, hoodCount = 0, zombieCount = 0, smartCount = 0;
   let refusing = false, held = false, sleeping = false;
   let bossActive = false, bossHp = 0, cakeMode = false, cakeSized = false;
   let sweatMode = false, sweatTimer = null, sweatStayTimer = null, lastTap = 0;
   let ufoPhase = null, ufoTimer = null;                    // 'warn'(느낌표) / 'on'(UFO)
   let knifeBusy = false, knifeTimer = null;
   let cakeUsed = false, gunUsed = false;       // 한 판에 한 번만 쓸 수 있는 것들
-  let boostActive = false, boostEnd = 0, boostTimer = null, boostTick = null;
+  let boostActive = false, boostEnd = 0, boostTotal = BOOST_TIME, boostTimer = null, boostTick = null, boostUses = 0;
+  let remoteUses = 0;                          // 이번 판에 리모컨을 쓴 횟수
   let newsChance = NEWS_START, newsTimer = null, newsBadgeTimer = null;
   let dumPhase = null, dumFast = false, dumTimer = null;   // DUM 고양이 상태 ('still' / 'fast')
   let nyanBusy = false, nyanTimer = null;
+  // 새로 추가된 이벤트 상태
+  let stunned = false, stunTimer = null, sayTimer = null;
+  let dogActive = false, dogQueued = false, dogHits = 0, dogCool = 0, dogX = 0, dogY = 0, dogTimer = null;
+  let moaiActive = false, moaiTimer = null;
+  let botPhase = null, botFast = false, botTimer = null;  // 'calc'(연산 중) / 'fast'
+  let xActive = false, xTimer = null;
+  let pinActive = false, pinTimer = null;
+  let hoodActive = false, hoodDone = false, hoodClicks = 0, hoodTimer = null;
+  let zombies = [], zombieActive = false, zombieTimer = null;
+  let smartActive = false, smartTimer = null;
   let unlimited = false, usedInf = false;
   let clones = [];
   // 억까 효과 상태
@@ -910,14 +1129,28 @@
   try { best = parseInt(localStorage.getItem('catBest')) || 0; } catch (e) {}
   bestEl.textContent = best;
 
+  // no_over 코드: 제한 시간이 영구적으로 늘어남
+  let noOver = false;
+  try { noOver = localStorage.getItem('catNoOver') === '1'; } catch (e) {}
+  function gt() { return GAME_TIME + (noOver ? NO_OVER_BONUS : 0); }
+  time = gt();
+
   // 점수 표시 / 점수 더하기 (0 아래로는 내려가지 않음)
   function renderScore() { scoreEl.textContent = scoreInf ? '∞' : score; }
   function addScore(d) { score = Math.max(0, score + d); renderScore(); }
   function showTime() { timeEl.textContent = unlimited ? '∞' : time; }
   showTime();
-  msg.innerHTML = '고양이를 클릭하십시오.<br>제한 시간은 ' + GAME_TIME + '초입니다.';
+  msg.innerHTML = '고양이를 클릭하십시오.<br>제한 시간은 ' + gt() + '초입니다.';
 
-  // ---------- 3초간 시작하지 않으면 사진 표시 ----------
+  // 고양이 말풍선 (잠깐 보였다가 사라짐)
+  function say(text, ms) {
+    bubble.textContent = text;
+    cat.classList.add('say');
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(() => { cat.classList.remove('say'); }, ms);
+  }
+
+  // ---------- 3초간 시작하지 않으면 사진 표시 (누르면 티캣이 말함) ----------
   function startIdleTimer() {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
@@ -927,7 +1160,15 @@
   function stopIdle() {
     clearTimeout(idleTimer);
     idleBox.style.display = 'none';
+    idleSay.style.display = 'none';
   }
+  let idleSayTimer = null;
+  idleBox.addEventListener('click', () => {
+    idleSay.textContent = '이 미니게임의 주인공 고양이의 이름은 "티캣"입니다.';
+    idleSay.style.display = 'block';
+    clearTimeout(idleSayTimer);
+    idleSayTimer = setTimeout(() => { idleSay.style.display = 'none'; }, 3500);
+  });
 
   // ---------- 기기 식별 ----------
   let cid = null;
@@ -944,7 +1185,7 @@
   let goldOn = false;
   try { goldOn = localStorage.getItem('catGold') === '1'; } catch (e) {}
 
-  // ---------- 공용 랭킹 (Firebase REST). board: 'score' 또는 'pop' ----------
+  // ---------- 공용 랭킹 (Firebase REST). board: 'score' 또는 POP_BOARD ----------
   async function dbGet(board) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000); // 4초 안에 응답이 없으면 포기
@@ -1003,16 +1244,43 @@
     goldOn = on;
     try { localStorage.setItem('catGold', on ? '1' : '0'); } catch (e) {}
     showToast(on ? '황금 닉네임이 적용되었습니다. 랭킹에서 황금색으로 표시됩니다.' : '황금 닉네임이 해제되었습니다.');
-    ['score', 'pop'].forEach(async (board) => {
+    [['score', 'score'], [POP_BOARD, 'pop']].forEach(async (bf) => {
       try {
-        const mine = toList(await dbGet(board), board).find(e => e.cid === cid);
+        const mine = toList(await dbGet(bf[0]), bf[1]).find(e => e.cid === cid);
         if (mine && !!mine.gold !== on) {
-          await fetch(DB + '/' + RANK_ROOT + '/' + board + '/' + mine.key + '.json',
+          await fetch(DB + '/' + RANK_ROOT + '/' + bf[0] + '/' + mine.key + '.json',
             { method: 'PATCH', body: JSON.stringify({ gold: on ? true : null }) });
         }
       } catch (e) {}
     });
   }
+
+  // ---------- 억까 소식 (접속자들이 당한 억까를 기록, 개발자 모드 띠에 표시) ----------
+  function feedPost(label) {
+    try {
+      fetch(DB + '/' + RANK_ROOT + '/feed.json', {
+        method: 'POST',
+        body: JSON.stringify({ n: nickSet ? nick : '익명', e: label, t: Date.now() })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+  let feedPoll = null;
+  async function pollFeed() {
+    try {
+      const r = await fetch(DB + '/' + RANK_ROOT + '/feed.json?orderBy=' + encodeURIComponent('"$key"') + '&limitToLast=12');
+      if (!r.ok) throw new Error('feed');
+      const d = (await r.json()) || {};
+      const list = Object.keys(d).sort().map(k => d[k]).filter(x => x && x.n && x.e).reverse();
+      feedText.textContent = list.length
+        ? list.map(x => x.n + '님이 ' + x.e + '에 당하셨습니다!').join('      ◆      ')
+        : '아직 억까 기록이 없습니다.';
+      feedText.style.animation = 'none';
+      void feedText.offsetWidth;
+      feedText.style.animation = 'marq ' + Math.max(25, feedText.textContent.length * 0.35) + 's linear infinite';
+    } catch (e) {}
+  }
+  function startFeed() { pollFeed(); clearInterval(feedPoll); feedPoll = setInterval(pollFeed, 7000); }
+  function stopFeed() { clearInterval(feedPoll); }
 
   // ---------- 닉네임 (형식 / 금지어 / 동명 / 변경 횟수 제한) ----------
   let nick = '익명', nickSet = false, nickChanges = 0;
@@ -1099,6 +1367,13 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
   }
+  let warnTimer = null;
+  function showWarn(text) {
+    warnBox.textContent = text;
+    warnBox.style.display = 'block';
+    clearTimeout(warnTimer);
+    warnTimer = setTimeout(() => { warnBox.style.display = 'none'; }, 6000);
+  }
 
   // ---------- 캣굴 (구글처럼 생긴 검색 사이트) ----------
   function openCatgle() {
@@ -1175,15 +1450,29 @@
   let popTotal = 0;      // 지금까지 모은 pop 총량 (pop 랭킹 기준)
   let popLv = 1;
   try {
+    // 새 시즌이 시작되면 모든 접속자의 pop이 처음 열 때 0으로 초기화됨
+    if (localStorage.getItem('catPopSeason') !== POP_SEASON) {
+      localStorage.setItem('catPop', '0');
+      localStorage.setItem('catPopTotal', '0');
+      localStorage.setItem('catPopWarn', '0');
+      localStorage.setItem('catPopSeason', POP_SEASON);
+    }
+  } catch (e) {}
+  try {
     popCount = parseInt(localStorage.getItem('catPop')) || 0;
     const pt = parseInt(localStorage.getItem('catPopTotal'));
     popTotal = isNaN(pt) ? popCount : Math.max(pt, popCount);
     popLv = Math.min(POP_MAX_LV, Math.max(1, parseInt(localStorage.getItem('catPopLv')) || 1));
   } catch (e) {}
-  let own = { bust: 0, gun: false };
+  let own = { bust: 0, gun: false, pin: 0, remote: false };
   try {
     const o = JSON.parse(localStorage.getItem('catOwn'));
-    if (o && typeof o === 'object') { own.bust = Math.max(0, parseInt(o.bust) || 0); own.gun = !!o.gun; }
+    if (o && typeof o === 'object') {
+      own.bust = Math.max(0, parseInt(o.bust) || 0);
+      own.gun = !!o.gun;
+      own.pin = Math.max(0, parseInt(o.pin) || 0);
+      own.remote = !!o.remote;
+    }
   } catch (e) {}
   function savePop() {
     try {
@@ -1197,6 +1486,8 @@
 
   document.getElementById('priceBust').textContent = BUST_PRICE.toLocaleString() + 'pop';
   document.getElementById('priceGun').textContent = GUN_PRICE.toLocaleString() + 'pop';
+  document.getElementById('pricePin').textContent = PIN_PRICE.toLocaleString() + 'pop';
+  document.getElementById('priceRemote').textContent = REMOTE_PRICE.toLocaleString() + 'pop';
 
   function renderShop() {
     popCountEl.textContent = popCount;
@@ -1213,6 +1504,10 @@
     buyGunBtn.textContent = own.gun ? '보유중' : '구매';
     buyGunBtn.disabled = own.gun;
     useGunBtn.textContent = (playing && gunUsed) ? '사용됨' : '사용';
+    pinOwnEl.textContent = '×' + own.pin;
+    remoteOwnEl.textContent = own.remote ? (Math.max(0, REMOTE_PER_GAME - remoteUses) + '/' + REMOTE_PER_GAME) : '';
+    buyRemoteBtn.textContent = own.remote ? '보유중' : '구매';
+    buyRemoteBtn.disabled = own.remote;
   }
   renderShop();
 
@@ -1228,8 +1523,17 @@
     if (!popDirty || popSubmitting) return;
     popDirty = false;
     popSubmitting = true;
-    try { await submitEntry('pop', 'pop', popTotal); } catch (e) { popDirty = true; }
+    try { await submitEntry(POP_BOARD, 'pop', popTotal); } catch (e) { popDirty = true; }
     popSubmitting = false;
+  }
+  // 부정 클릭으로 초기화될 때 pop 랭킹의 내 기록도 지움
+  async function deleteMyPopEntry() {
+    popDirty = false;
+    clearTimeout(popSubmitTimer);
+    try {
+      const mine = toList(await dbGet(POP_BOARD), 'pop').find(e => e.cid === cid);
+      if (mine) await fetch(DB + '/' + RANK_ROOT + '/' + POP_BOARD + '/' + mine.key + '.json', { method: 'DELETE' });
+    } catch (e) {}
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushPop();
@@ -1282,10 +1586,74 @@
     setTimeout(() => { s.remove(); }, 600);
   }
 
+  // super pop 코드: 10초 동안 pop 1.5배
+  let superUntil = 0, superTick = null, popFrac = 0;
+  function startSuperPop() {
+    superUntil = Date.now() + SUPER_TIME;
+    popFrac = 0;
+    clearInterval(superTick);
+    superTick = setInterval(updateSuper, 200);
+    updateSuper();
+    showToast('super pop: ' + (SUPER_TIME / 1000) + '초간 pop을 ' + SUPER_MUL + '배로 얻습니다.');
+  }
+  function updateSuper() {
+    const left = superUntil - Date.now();
+    if (left <= 0) {
+      clearInterval(superTick);
+      superTxt.style.display = 'none';
+      return;
+    }
+    superTxt.style.display = 'block';
+    superTxt.textContent = 'SUPER ×' + SUPER_MUL + '  ' + (left / 1000).toFixed(1) + '초';
+  }
+  function popGain() {
+    const n = popPer();
+    if (Date.now() < superUntil) {
+      const t = n * SUPER_MUL + popFrac;
+      const g = Math.floor(t);
+      popFrac = t - g;
+      return g;
+    }
+    return n;
+  }
+
+  // pop을 한꺼번에 주는 도우미 (똑똑한 고양이 등)
+  function givePop(n) {
+    popCount += n;
+    popTotal += n;
+    savePop();
+    popCountEl.textContent = popCount;
+    schedulePopSubmit();
+  }
+
+  // 부정 클릭 감지: 1초에 27번 이상 누르면 첫 번째는 경고, 그다음은 pop 초기화
+  let popTimes = [];
+  function popRateCheck() {
+    const now = Date.now();
+    popTimes.push(now);
+    while (popTimes.length && now - popTimes[0] > POP_FAST_WINDOW) popTimes.shift();
+    if (popTimes.length < POP_FAST_LIMIT) return false;
+    popTimes = [];
+    let w = 0;
+    try { w = parseInt(localStorage.getItem('catPopWarn')) || 0; } catch (e) {}
+    if (w < 1) {
+      try { localStorage.setItem('catPopWarn', '1'); } catch (e) {}
+      showWarn('경고: 1초에 ' + POP_FAST_LIMIT + '번 이상 누르는 것이 감지되었습니다. 다시 감지되면 pop이 초기화됩니다.');
+    } else {
+      try { localStorage.setItem('catPopWarn', '0'); } catch (e) {}
+      popCount = 0; popTotal = 0; popFrac = 0;
+      savePop(); renderShop();
+      deleteMyPopEntry();
+      showWarn('비정상적인 클릭이 다시 감지되어 pop이 초기화되었습니다.');
+    }
+    return true;
+  }
+
   // 팝 캣을 누를 때마다 pop을 얻음 (레벨만큼)
   popBox.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    const n = popPer();
+    if (popRateCheck()) return;
+    const n = popGain();
     popCount += n;
     popTotal += n;
     popCountEl.textContent = popCount;
@@ -1324,37 +1692,40 @@
 
   function buyItem(id) {
     if (id === 'gun' && own.gun) { showToast('gun은 이미 보유 중입니다.'); return; }
-    const price = id === 'gun' ? GUN_PRICE : BUST_PRICE;
+    if (id === 'remote' && own.remote) { showToast('리모컨은 이미 보유 중입니다.'); return; }
+    const price = PRICES[id];
     if (popCount < price) {
       showToast('pop이 부족합니다. (필요 ' + price.toLocaleString() + ' / 보유 ' + popCount.toLocaleString() + ')');
       return;
     }
     popCount -= price;
-    if (id === 'gun') own.gun = true; else own.bust++;
+    if (id === 'gun') own.gun = true;
+    else if (id === 'remote') own.remote = true;
+    else own[id]++;
     savePop(); saveOwn(); renderShop();
-    showToast(id + ' 구매가 완료되었습니다.');
+    showToast((id === 'remote' ? '리모컨' : id) + ' 구매가 완료되었습니다.');
   }
 
-  // ---------- bust: 일정 시간 동안 점수가 늘어남 ----------
+  // ---------- bust: 쓸 때마다 시간이 더해지고, 한 판에 15번까지 ----------
   function updateBoostText() {
     const left = Math.max(0, boostEnd - Date.now());
-    boostTxt.textContent = 'BUST  1점 → ' + BOOST_MUL + '점  ' + (left / 1000).toFixed(1) + '초';
+    boostFill.style.width = Math.min(100, left / boostTotal * 100) + '%';
+    boostTxt.textContent = 'BUST  1점 → ' + BOOST_MUL + '점  ' + (left / 1000).toFixed(1) + '초  (' +
+      boostUses + '/' + BOOST_MAX_USES + ')';
   }
   function startBoost() {
-    boostActive = true;
-    boostEnd = Date.now() + BOOST_TIME;
+    const now = Date.now();
+    if (boostActive) boostEnd += BOOST_TIME;          // 시간 중첩: 남은 시간 + 새로 쓴 시간
+    else { boostActive = true; boostEnd = now + BOOST_TIME; }
+    boostTotal = Math.max(BOOST_TIME, boostEnd - now);
     boostEl.classList.add('on');
     field.classList.add('boosted');
     boostFill.style.transition = 'none';
-    boostFill.style.width = '100%';
-    void boostFill.offsetWidth; // 애니메이션 초기화
-    boostFill.style.transition = 'width ' + BOOST_TIME + 'ms linear';
-    boostFill.style.width = '0%';
     clearInterval(boostTick);
     boostTick = setInterval(updateBoostText, 100);
     updateBoostText();
     clearTimeout(boostTimer);
-    boostTimer = setTimeout(stopBoost, BOOST_TIME);
+    boostTimer = setTimeout(stopBoost, boostEnd - now);
   }
   function stopBoost() {
     boostActive = false;
@@ -1367,10 +1738,13 @@
   function useBust() {
     if (!playing) { showToast('bust는 게임 중에만 사용할 수 있습니다.'); return; }
     if (own.bust <= 0) { showToast('보유한 bust가 없습니다. 상점에서 구매하십시오.'); return; }
-    if (boostActive) { showToast('이미 bust가 적용 중입니다.'); return; }
-    own.bust--; saveOwn(); renderShop();
+    if (boostUses >= BOOST_MAX_USES) {
+      showToast('bust는 한 판에 ' + BOOST_MAX_USES + '번까지만 사용할 수 있습니다.');
+      return;
+    }
+    own.bust--; boostUses++; saveOwn(); renderShop();
     startBoost();
-    showToast('bust 적용: ' + (BOOST_TIME / 1000) + '초간 1점이 ' + BOOST_MUL + '점이 됩니다.');
+    showToast('bust ' + boostUses + '/' + BOOST_MAX_USES + ': ' + (BOOST_TIME / 1000) + '초가 더해졌습니다.');
   }
 
   // ---------- gun: 고양이를 협박해서 8점 (한 판에 한 번) ----------
@@ -1378,7 +1752,8 @@
     if (!playing) { showToast('gun은 게임 중에만 사용할 수 있습니다.'); return; }
     if (!own.gun) { showToast('gun을 먼저 구매해야 합니다.'); return; }
     if (gunUsed) { showToast('gun은 한 판에 한 번만 사용할 수 있습니다.'); return; }
-    if (bossActive || held || cakeMode || dumPhase === 'still' || ufoPhase) {
+    if (bossActive || held || cakeMode || dumPhase === 'still' || ufoPhase ||
+        hoodActive || xActive || pinActive || botPhase === 'calc') {
       showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.');
       return;
     }
@@ -1403,10 +1778,53 @@
     moveTimer = setTimeout(moveCat, THREAT_TIME);
   }
 
+  // 지금 고양이가 특별한 상태인지 (pin / bot cat / x 등을 쓸 수 없는 때)
+  function busy() {
+    return bossActive || held || sleeping || cakeMode || sweatMode || refusing || !!dumPhase || !!ufoPhase ||
+           hoodActive || xActive || pinActive || botPhase === 'calc';
+  }
+
+  // ---------- pin: 2초간 고양이를 고정 (누르면 점수는 쌓이고 고양이는 움직이지 않음) ----------
+  function usePin() {
+    if (!playing) { showToast('pin은 게임 중에만 사용할 수 있습니다.'); return; }
+    if (own.pin <= 0) { showToast('보유한 pin이 없습니다. 상점에서 구매하십시오.'); return; }
+    if (busy()) { showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.'); return; }
+    own.pin--; saveOwn(); renderShop();
+    pinActive = true;
+    clearTimeout(moveTimer);
+    cat.classList.add('pinned', 'color');
+    showToast('pin: ' + (PIN_TIME / 1000) + '초간 고양이를 고정합니다.');
+    clearTimeout(pinTimer);
+    pinTimer = setTimeout(endPin, PIN_TIME);
+  }
+  function endPin() { stopPinState(); if (playing) moveCat(); }
+  function stopPinState() {
+    pinActive = false;
+    clearTimeout(pinTimer);
+    cat.classList.remove('pinned');
+  }
+
+  // ---------- 리모컨: 뉴스를 조작해서 좋은 뉴스를 보냄 (한 판에 3번) ----------
+  function useRemote() {
+    if (!playing) { showToast('리모컨은 게임 중에만 사용할 수 있습니다.'); return; }
+    if (!own.remote) { showToast('리모컨을 먼저 구매해야 합니다.'); return; }
+    if (remoteUses >= REMOTE_PER_GAME) {
+      showToast('리모컨은 한 판에 ' + REMOTE_PER_GAME + '번까지만 사용할 수 있습니다.');
+      return;
+    }
+    remoteUses++;
+    renderShop();
+    showNews(null, true);
+  }
+
   buyBustBtn.addEventListener('click', () => buyItem('bust'));
   useBustBtn.addEventListener('click', useBust);
   buyGunBtn.addEventListener('click', () => buyItem('gun'));
   useGunBtn.addEventListener('click', useGun);
+  buyPinBtn.addEventListener('click', () => buyItem('pin'));
+  usePinBtn.addEventListener('click', usePin);
+  buyRemoteBtn.addEventListener('click', () => buyItem('remote'));
+  useRemoteBtn.addEventListener('click', useRemote);
 
   // ---------- 랭킹 페이지로 이동 ----------
   async function goRanking() {
@@ -1417,13 +1835,20 @@
   rankBtn.addEventListener('click', goRanking);
 
   // ---------- 뉴스 (1초마다 확률을 굴림) ----------
-  function showNews(custom) {
+  function showNews(custom, forceGood) {
     newsCount++;
     newsCountEl.textContent = newsCount;
-    const good = Math.random() < NEWS_GOOD_RATE;
+    let good = forceGood ? true : Math.random() < NEWS_GOOD_RATE;
     const list = good ? NEWS_GOOD : NEWS_BAD;
-    newsText.textContent = custom || list[Math.floor(Math.random() * list.length)];
-    const d = good ? NEWS_GOOD_SCORE : -NEWS_BAD_SCORE;
+    let text = custom || list[Math.floor(Math.random() * list.length)];
+    let d = good ? NEWS_GOOD_SCORE : -NEWS_BAD_SCORE;
+    // 아주 드물게 로또 당첨 뉴스
+    if (!custom && !forceGood && Math.random() < LOTTO_CHANCE) {
+      good = true;
+      d = LOTTO_SCORE;
+      text = (nickSet ? nick : '익명') + '님이 로또에 당첨되었습니다!';
+    }
+    newsText.textContent = text;
     addScore(d);
     newsBadge.textContent = (d > 0 ? '+' : '') + d;
     newsBadge.style.color = good ? '#1b8a2d' : '#d00';
@@ -1466,6 +1891,7 @@
       const wasTiny = tiny;
       resetEffects();
       dumFast = false; // DUM 고양이의 가속도 해제
+      botFast = false; // bot cat의 가속도 해제
       // 크기 축소 효과가 걸려 있었다면 평소 크기로 되돌림 (다른 상태 중이 아닐 때만)
       if (wasTiny && !bossActive && !cakeSized && !held) {
         cat.style.width = '80px';
@@ -1483,6 +1909,7 @@
 
   // 화면 회전 (코드창 효과와 자동 발동 공용)
   function rotateScreen() {
+    feedPost('화면 회전');
     escaped = false;
     timed('flip', () => { flipped = true; field.classList.add('flip'); },
                   () => { flipped = false; field.classList.remove('flip'); }, EFFECT_TIME);
@@ -1511,7 +1938,7 @@
     { name: '분신술이 강제로 발동되었습니다.',
       run() {
         if (clones.length === 0 && !held && !sleeping && !bossActive && !cakeMode && !sweatMode &&
-            dumPhase !== 'still' && !ufoPhase) {
+            dumPhase !== 'still' && !ufoPhase && !hoodActive && !xActive && !pinActive && botPhase !== 'calc') {
           escaped = false;
           placeEl(cat);
           cat.style.display = 'block';
@@ -1533,7 +1960,7 @@
   function toggleUnlimited() {
     unlimited = !unlimited;
     if (unlimited) usedInf = true;
-    if (!unlimited) time = GAME_TIME;
+    if (!unlimited) time = gt();
     showTime();
     showToast(unlimited ? '무제한이 적용되었습니다.' : '무제한이 해제되었습니다.');
   }
@@ -1546,10 +1973,111 @@
     showToast(scoreInf ? '점수가 무한이 되었습니다. (랭킹에 등록되지 않습니다)' : '점수 무한이 해제되었습니다.');
   }
 
+  // no_over 코드: 제한 시간을 영구적으로 3초 늘림
+  function applyNoOver() {
+    if (noOver) { showToast('no_over는 이미 적용되어 있습니다. (영구)'); return; }
+    noOver = true;
+    try { localStorage.setItem('catNoOver', '1'); } catch (e) {}
+    if (!unlimited) {
+      if (playing) time += NO_OVER_BONUS; else time = gt();
+      showTime();
+    }
+    if (!playing && document.getElementById('start').textContent === '시작') {
+      msg.innerHTML = '고양이를 클릭하십시오.<br>제한 시간은 ' + gt() + '초입니다.';
+    }
+    showToast('제한 시간이 영구적으로 ' + NO_OVER_BONUS + '초 늘어났습니다.');
+  }
+
+  // ---------- 코드 만료 관리 (개발자 모드에서 설정, 모든 접속자에게 적용) ----------
+  let codesCache = { t: 0, data: {} };
+  async function fetchCodes(force) {
+    if (!force && Date.now() - codesCache.t < 20000) return codesCache.data;
+    try {
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 2500);
+      const r = await fetch(DB + '/' + RANK_ROOT + '/codes.json', { signal: ctrl.signal });
+      clearTimeout(tm);
+      if (!r.ok) throw new Error('codes');
+      codesCache = { t: Date.now(), data: (await r.json()) || {} };
+    } catch (e) { codesCache.t = Date.now(); } // 서버에 연결되지 않으면 모든 코드를 허용
+    return codesCache.data;
+  }
+  async function codeAllowed(id) {
+    const d = await fetchCodes(false);
+    const c = d[id];
+    return !(c && typeof c.exp === 'number' && Date.now() > c.exp);
+  }
+  // 입력한 글자 → 코드 저장 이름 (관리 대상이 아니면 null)
+  function codeId(v) {
+    const v2 = v.replace(/\s+/g, '');
+    if (v === 'catke') return 'catke';
+    if (v === 'popcat' || v === 'pop') return 'popcat';
+    if (v === 'code') return 'code';
+    if (v === 'tree') return 'tree';
+    if (v === 'gold2s') return 'gold2s';
+    if (v === 'catgle') return 'catgle';
+    if (v2 === 'dog') return 'dog';
+    if (v === '모아이' || v2 === 'moai') return 'moai';
+    if (v2 === 'botcat') return 'botcat';
+    if (v2 === 'x') return 'x';
+    if (v2 === 'no_over' || v2 === 'noover') return 'noover';
+    if (v2 === 'superpop') return 'superpop';
+    return null;
+  }
+  function codeStatus(exp) {
+    if (exp === null) return '영구 (만료 없음)';
+    const left = exp - Date.now();
+    if (left <= 0) return '만료됨';
+    const dd = Math.floor(left / 86400000), hh = Math.floor(left % 86400000 / 3600000), mm = Math.floor(left % 3600000 / 60000);
+    return '만료까지 ' + (dd ? dd + '일 ' : '') + hh + '시간 ' + mm + '분';
+  }
+  async function setCodeExp(id, exp) {
+    try {
+      const url = DB + '/' + RANK_ROOT + '/codes/' + id + '.json';
+      const r = exp === null ? await fetch(url, { method: 'DELETE' })
+                             : await fetch(url, { method: 'PUT', body: JSON.stringify({ exp: exp }) });
+      if (!r.ok) throw new Error('put');
+      codesCache.t = 0;
+    } catch (e) { showToast('코드 설정에 실패하였습니다.'); }
+    renderCodeMgr();
+  }
+  async function renderCodeMgr() {
+    cmList.textContent = '불러오는 중...';
+    const d = await fetchCodes(true);
+    cmList.innerHTML = '';
+    CODE_DEFS.forEach(def => {
+      const id = def[0];
+      const c = d[id];
+      const exp = (c && typeof c.exp === 'number') ? c.exp : null;
+      const row = document.createElement('div');
+      row.className = 'cmrow';
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = def[1];
+      const lb = document.createElement('span'); lb.className = 'lb'; lb.textContent = def[2];
+      const st = document.createElement('span'); st.className = 'st'; st.textContent = codeStatus(exp);
+      row.appendChild(nm); row.appendChild(lb); row.appendChild(st);
+      const mk = (label, fn) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.addEventListener('click', fn);
+        row.appendChild(b);
+      };
+      const base = Math.max(Date.now(), exp || 0);
+      mk('만료', () => setCodeExp(id, Date.now() - 1));
+      mk('기한 +1일', () => setCodeExp(id, base + 86400000));
+      mk('기한 +7일', () => setCodeExp(id, base + 7 * 86400000));
+      mk('영구', () => setCodeExp(id, null));
+      cmList.appendChild(row);
+    });
+  }
+  document.getElementById('devCodes').addEventListener('click', () => { codeMgr.classList.add('open'); renderCodeMgr(); });
+  document.getElementById('cmClose').addEventListener('click', () => { codeMgr.classList.remove('open'); });
+
   // ---------- 개발자 패널 (devcode0.1## 코드) ----------
   function toggleDev() {
     const on = !devPanel.classList.contains('open');
     devPanel.classList.toggle('open', on);
+    document.body.classList.toggle('devOn', on);
+    if (on) startFeed(); else { stopFeed(); codeMgr.classList.remove('open'); }
     showToast(on ? '개발자 패널이 열렸습니다. 사용한 판은 랭킹에 등록되지 않습니다.' : '개발자 패널이 닫혔습니다.');
   }
 
@@ -1560,6 +2088,7 @@
     clearTimeout(sweatStayTimer);
     dumPhase = null; dumFast = false;
     stopUfo();
+    clearExtras();
     clearClones();
     escaped = false; refusing = false; held = false; sleeping = false;
     cakeMode = false; bossActive = false; sweatMode = false; cakeSized = false;
@@ -1609,7 +2138,10 @@
     ['화면 회전', () => { rotCount++; rotCountEl.textContent = rotCount; rotateScreen(); }, false],
     ['분신 술 쓰기', () => devClones(), true],
     ['점수 거절하기', () => refuseCat(), true],
-    ['고양이 밖에 나가기', () => escapeCat(), true]
+    ['고양이 밖에 나가기', () => escapeCat(), true],
+    ['후드냥 소환', () => startHood(), true],
+    ['좀비냥 소환', () => startZombies(), true],
+    ['똑똑한 고양이', () => startSmart(), false]
   ];
   DEV_ACTIONS.forEach(a => {
     const row = document.createElement('div');
@@ -1627,11 +2159,9 @@
   document.getElementById('devInfScore').addEventListener('click', toggleScoreInf);
   document.getElementById('devClose').addEventListener('click', toggleDev);
 
-  // 코드창: Enter로 입력
-  codeInput.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    const v = codeInput.value.trim().toLowerCase();
-    codeInput.value = '';
+  // 코드창에 입력한 코드를 실행
+  function runCode(v) {
+    const v2 = v.replace(/\s+/g, '');
     if (v === 'inf') {
       toggleUnlimited();
     } else if (v === 'mute') {
@@ -1649,7 +2179,8 @@
       if (!playing) showToast('케이크는 게임 중에만 받을 수 있습니다.');
       else if (cakeUsed) showToast('케이크는 한 판에 한 번만 받을 수 있습니다.');
       else if (bossActive) showToast('보스 전투 중에는 사용할 수 없습니다.');
-      else if (dumPhase === 'still' || ufoPhase) showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.');
+      else if (dumPhase === 'still' || ufoPhase || hoodActive || xActive || pinActive || botPhase === 'calc')
+        showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.');
       else { cakeUsed = true; cakeCat(); }
     } else if (v === 'code') {
       devCat();
@@ -1659,6 +2190,22 @@
       setGold(!goldOn);
     } else if (v === 'devcode0.1##') {
       toggleDev();
+    } else if (v2 === 'dog') {
+      if (playing) startDog();
+      else { dogQueued = true; showToast('다음 게임이 시작되면 강아지가 나타납니다.'); }
+    } else if (v === '모아이' || v2 === 'moai') {
+      if (!playing) showToast('모아이는 게임 중에만 부를 수 있습니다.');
+      else startMoai();
+    } else if (v2 === 'botcat') {
+      if (!playing) showToast('bot cat은 게임 중에만 사용할 수 있습니다.');
+      else startBot();
+    } else if (v2 === 'x') {
+      if (!playing) showToast('x는 게임 중에만 사용할 수 있습니다.');
+      else startX();
+    } else if (v2 === 'no_over' || v2 === 'noover') {
+      applyNoOver();
+    } else if (v2 === 'superpop') {
+      startSuperPop();
     } else if (v === '의지') {
       if (playing) {
         showToast('고양이에게 의지를 얻었습니다.');
@@ -1669,6 +2216,19 @@
     } else if (v) {
       if (playing) applyRandomEffect();
       else showToast('효과는 게임 중에만 적용됩니다.');
+    }
+  }
+
+  // 코드창: Enter로 입력 (만료된 코드는 막음)
+  codeInput.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    const v = codeInput.value.trim().toLowerCase();
+    codeInput.value = '';
+    const id = codeId(v);
+    if (id && !(await codeAllowed(id))) {
+      showToast('만료된 코드입니다.');
+    } else {
+      runCode(v);
     }
     codeInput.blur();
   });
@@ -1749,6 +2309,7 @@
   }
 
   function spawnClones(n) {
+    feedPost('분신술');
     if (!n) n = CLONE_MIN + Math.floor(Math.random() * (CLONE_MAX - CLONE_MIN + 1));
     for (let i = 0; i < n; i++) {
       const el = makeClone();
@@ -1784,6 +2345,7 @@
 
   // ---------- 졸린 고양이 (자는 동안 누르면 깨어나서 화내며 감점) ----------
   function sleepCat() {
+    feedPost('졸린 고양이');
     sleepCount++;
     sleepCountEl.textContent = sleepCount;
     clearClones();
@@ -1800,6 +2362,7 @@
 
   // ---------- 점수 거절 (고양이가 짜증내며 점수를 주지 않음) ----------
   function refuseCat() {
+    feedPost('점수 거절');
     refusing = true;
     refCount++;
     refCountEl.textContent = refCount;
@@ -1814,7 +2377,7 @@
     if (!playing) return;
     if (Date.now() - lastTap < SWEAT_IDLE) return;
     if (bossActive || held || sleeping || cakeMode || refusing || sweatMode || escaped ||
-        dumPhase || ufoPhase) return;
+        dumPhase || ufoPhase || hoodActive || xActive || pinActive || botPhase === 'calc') return;
     startSweat();
   }
 
@@ -1848,6 +2411,7 @@
   // ---------- 칼 고양이: 점수 칸으로 날아가 점수를 깎음 ----------
   function startKnife() {
     if (knifeBusy) return;
+    feedPost('칼 고양이');
     knifeBusy = true;
     knifeCount++;
     knifeCountEl.textContent = knifeCount;
@@ -1887,6 +2451,7 @@
   // ---------- UFO: 느낌표 → 1.1초 뒤 고양이 위에 UFO (3초, 누를 때마다 점수) ----------
   function startUfo() {
     if (ufoPhase) return;
+    feedPost('UFO');
     ufoCount++;
     ufoCountEl.textContent = ufoCount;
     clearTimeout(moveTimer);
@@ -1958,12 +2523,16 @@
     if (dumFast && dumOk && face.contains(img)) {
       img.src = DUM_IMG;           // 빨라진 동안에는 DUM 그림 유지
       cat.classList.add('color');
+    } else if (smartActive && smartSrc && face.contains(img)) {
+      img.src = smartSrc;          // 똑똑한 고양이 동안에는 안경 쓴 그림 유지
+      cat.classList.add('color');
     } else {
       showAngryFace(false);
     }
   }
 
   function startDum() {
+    feedPost('버그');
     dumCount++;
     dumCountEl.textContent = dumCount;
     clearClones();
@@ -2003,6 +2572,7 @@
   // ---------- 냥캣: 게임 박스 위를 지나가며 가림 ----------
   function startNyan() {
     if (nyanBusy) return;
+    feedPost('냥캣');
     nyanBusy = true;
     nyanCount++;
     nyanCountEl.textContent = nyanCount;
@@ -2032,8 +2602,376 @@
     nyanWrap.style.display = 'none';
   }
 
+  // ---------- 때리기(기절): 강아지 / 모아이에게 맞으면 잠시 고양이를 누를 수 없음 ----------
+  function hitCat(who) {
+    if (!playing) return;
+    stunned = true;
+    cat.classList.add('hurt');
+    bubble.textContent = who + '에게 맞았습니다!';
+    clearTimeout(stunTimer);
+    stunTimer = setTimeout(() => { stunned = false; cat.classList.remove('hurt'); }, HIT_STUN);
+  }
+
+  // ---------- 강아지 (dog 코드): 고양이를 따라다니며 3번 때리고 사라짐 ----------
+  function dogUpdate() { dog.style.left = dogX + 'px'; dog.style.top = dogY + 'px'; }
+  function startDog() {
+    if (dogActive) { showToast('강아지가 이미 나와 있습니다.'); return; }
+    feedPost('강아지');
+    dogActive = true;
+    dogHits = 0;
+    dogCool = Date.now() + 600;
+    dogX = -30;
+    dogY = Math.max(0, field.clientHeight - 50);
+    dog.style.display = 'block';
+    dogUpdate();
+    clearInterval(dogTimer);
+    dogTimer = setInterval(dogStep, 40);
+    showToast('강아지가 고양이를 따라다닙니다. ' + DOG_HITS + '번 때리고 사라집니다.');
+  }
+  function dogStep() {
+    if (!playing || !dogActive) { stopDog(); return; }
+    if (dogHits >= DOG_HITS) {         // 다 때렸으면 왼쪽으로 달려서 사라짐
+      dogX -= 7;
+      dogUpdate();
+      if (dogX < -70) stopDog();
+      return;
+    }
+    if (cat.style.display === 'none' || cat.style.visibility === 'hidden') return;
+    const tx = cat.offsetLeft + cat.offsetWidth / 2 - 22;
+    const ty = cat.offsetTop + cat.offsetHeight / 2 - 22;
+    const dx = tx - dogX, dy = ty - dogY;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d > DOG_RANGE) {
+      const st = DOG_SPEED * 0.04;
+      dogX += dx / d * st;
+      dogY += dy / d * st;
+      dogUpdate();
+    } else if (Date.now() >= dogCool) {
+      dogHits++;
+      dogCool = Date.now() + DOG_HIT_GAP;
+      dog.classList.remove('bite');
+      void dog.offsetWidth;
+      dog.classList.add('bite');
+      hitCat('강아지');
+      if (dogHits >= DOG_HITS) showToast('강아지가 ' + DOG_HITS + '번 때리고 떠납니다.');
+    }
+  }
+  function stopDog() {
+    dogActive = false;
+    clearInterval(dogTimer);
+    dog.style.display = 'none';
+    dog.classList.remove('bite');
+  }
+
+  // ---------- 모아이 (모아이 코드): 15초에 한 번 고양이를 때림 ----------
+  function moaiHome() {
+    moai.style.left = '8px';
+    moai.style.top = Math.max(0, field.clientHeight - 104) + 'px';
+  }
+  function startMoai() {
+    if (moaiActive) { showToast('모아이가 이미 나와 있습니다.'); return; }
+    feedPost('모아이');
+    moaiActive = true;
+    moai.style.transition = 'none';
+    moaiHome();
+    moai.style.display = 'block';
+    clearInterval(moaiTimer);
+    moaiTimer = setInterval(moaiSmash, MOAI_GAP);
+    showToast('모아이가 나타났습니다. ' + (MOAI_GAP / 1000) + '초에 한 번 고양이를 때립니다.');
+  }
+  function moaiSmash() {
+    if (!playing || !moaiActive) { stopMoai(); return; }
+    moai.style.transition = 'left .3s ease-in, top .3s ease-in';
+    moai.style.left = (cat.offsetLeft + cat.offsetWidth / 2 - 36) + 'px';
+    moai.style.top = (cat.offsetTop + cat.offsetHeight / 2 - 44) + 'px';
+    setTimeout(() => {
+      if (!moaiActive) return;
+      moai.classList.remove('smash');
+      void moai.offsetWidth;
+      moai.classList.add('smash');
+      hitCat('모아이');
+    }, 320);
+    setTimeout(() => {
+      if (!moaiActive) return;
+      moai.style.transition = 'left .5s ease-out, top .5s ease-out';
+      moaiHome();
+    }, 1100);
+  }
+  function stopMoai() {
+    moaiActive = false;
+    clearInterval(moaiTimer);
+    moai.style.display = 'none';
+    moai.classList.remove('smash');
+  }
+
+  // ---------- bot cat (bot cat 코드): 4초 연산 후 4초간 5배 빨라짐 ----------
+  function startBot() {
+    if (botPhase) { showToast('bot cat이 이미 실행 중입니다.'); return; }
+    if (busy()) { showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.'); return; }
+    feedPost('bot cat');
+    clearTimeout(moveTimer);
+    botPhase = 'calc';
+    cat.classList.add('bot');
+    bubble.textContent = '연산 중...';
+    clearTimeout(botTimer);
+    botTimer = setTimeout(botGo, BOT_CALC);
+  }
+  function botGo() {
+    if (!playing) return;
+    botPhase = 'fast';
+    botFast = true;
+    cat.classList.remove('bot');
+    showToast('연산이 끝났습니다. ' + BOT_MUL + '배 빨라집니다.');
+    clearTimeout(moveTimer);
+    moveCat();
+    clearTimeout(botTimer);
+    botTimer = setTimeout(() => { botPhase = null; botFast = false; }, BOT_FAST);
+  }
+  function stopBotState() {
+    clearTimeout(botTimer);
+    botPhase = null;
+    botFast = false;
+    cat.classList.remove('bot');
+  }
+
+  // ---------- x (x 코드): 고양이가 잠시 사라짐 ----------
+  function startX() {
+    if (xActive) { showToast('고양이가 이미 사라져 있습니다.'); return; }
+    if (busy()) { showToast('지금은 사용할 수 없습니다. 잠시 후 다시 시도하십시오.'); return; }
+    feedPost('x');
+    xActive = true;
+    clearTimeout(moveTimer);
+    xmark.style.left = (cat.offsetLeft + cat.offsetWidth / 2 - 24) + 'px';
+    xmark.style.top = (cat.offsetTop + cat.offsetHeight / 2 - 30) + 'px';
+    xmark.style.display = 'block';
+    cat.style.visibility = 'hidden';
+    showToast('고양이가 사라졌습니다. ' + (X_TIME / 1000) + '초 뒤에 돌아옵니다.');
+    clearTimeout(xTimer);
+    xTimer = setTimeout(endX, X_TIME);
+  }
+  function endX() { stopXState(); if (playing) moveCat(); }
+  function stopXState() {
+    xActive = false;
+    clearTimeout(xTimer);
+    xmark.style.display = 'none';
+    cat.style.visibility = '';
+  }
+
+  // ---------- 후드냥: 오른쪽 가운데 문으로 걸어 나가려 함 (5번 눌러 막기) ----------
+  function hoodSay(t) { bubble.textContent = t; }
+  function startHood() {
+    feedPost('후드냥');
+    hoodCount++;
+    hoodCountEl.textContent = hoodCount;
+    clearTimeout(moveTimer);
+    clearClones();
+    escaped = false; refusing = false; held = false; sleeping = false; cakeMode = false; sweatMode = false;
+    cat.classList.remove('hit', 'angry', 'held', 'gun', 'cake', 'boss', 'threat', 'sweat', 'color');
+    hoodActive = true;
+    hoodDone = false;
+    hoodClicks = 0;
+    if (hoodSrc && face.contains(img)) {
+      img.src = hoodSrc;
+      cat.classList.add('color');
+    }
+    cat.style.width = '90px';
+    cat.style.height = '90px';
+    cat.style.display = 'block';
+    cat.style.opacity = '';
+    door.style.display = 'block';
+    const fw = field.clientWidth, fh = field.clientHeight;
+    cat.style.transition = 'none';
+    cat.style.left = (Math.random() * fw * 0.3) + 'px';
+    cat.style.top = (Math.random() * Math.max(0, fh - 90)) + 'px';
+    void cat.offsetWidth;
+    const dur = HOOD_MIN + Math.random() * (HOOD_MAX - HOOD_MIN);
+    const dw = door.offsetWidth || 90;
+    cat.style.transition = 'left ' + dur + 'ms linear, top ' + dur + 'ms linear, opacity .35s';
+    cat.style.left = (fw - dw * 0.55 - 45) + 'px';
+    cat.style.top = (fh / 2 - 45) + 'px';
+    cat.classList.add('hood');
+    hoodSay('나가려 합니다! 0/' + HOOD_CLICKS);
+    showToast('후드냥이 문으로 나가려 합니다. ' + HOOD_CLICKS + '번 눌러 막으십시오.');
+    clearTimeout(hoodTimer);
+    hoodTimer = setTimeout(hoodExit, dur);
+  }
+  function hoodClick() {
+    if (hoodDone) return;
+    hoodClicks++;
+    cat.classList.add('hit');
+    setTimeout(() => { cat.classList.remove('hit'); }, 80);
+    if (hoodClicks >= HOOD_CLICKS) { hoodBlock(); return; }
+    hoodSay('나가려 합니다! ' + hoodClicks + '/' + HOOD_CLICKS);
+  }
+  function hoodBlock() {
+    hoodDone = true;
+    clearTimeout(hoodTimer);
+    cat.style.transition = 'none';
+    cat.style.left = cat.offsetLeft + 'px';  // 걷던 자리에 멈춤
+    cat.style.top = cat.offsetTop + 'px';
+    hoodSay('막았습니다!');
+    showToast('후드냥을 막았습니다.');
+    setTimeout(() => { hoodCleanup(); if (playing) moveCat(); }, 700);
+  }
+  function hoodExit() {
+    if (!playing || !hoodActive || hoodDone) return;
+    hoodDone = true;
+    cat.style.opacity = '0';
+    hoodSay('나갔습니다... -' + HOOD_PENALTY);
+    addScore(-HOOD_PENALTY);
+    showToast('후드냥이 문으로 나갔습니다. -' + HOOD_PENALTY);
+    setTimeout(() => { hoodCleanup(); if (playing) moveCat(); }, 800);
+  }
+  function hoodCleanup() {
+    hoodActive = false;
+    hoodDone = false;
+    door.style.display = 'none';
+    cat.classList.remove('hood');
+    cat.style.transition = '';
+    cat.style.opacity = '';
+    const sz = tiny ? MIN_SIZE : 80;
+    cat.style.width = sz + 'px';
+    cat.style.height = sz + 'px';
+  }
+  function stopHoodState() {
+    clearTimeout(hoodTimer);
+    if (hoodActive) hoodCleanup();
+  }
+
+  // ---------- 좀비냥: 5마리가 고양이에게 다가옴 (닿으면 게임오버, 한 번 누르면 사라짐) ----------
+  function startZombies() {
+    if (zombieActive) return;
+    feedPost('좀비냥');
+    zombieActive = true;
+    zombieCount++;
+    zombieCountEl.textContent = zombieCount;
+    const fw = field.clientWidth, fh = field.clientHeight;
+    const cx = cat.offsetLeft + cat.offsetWidth / 2, cy = cat.offsetTop + cat.offsetHeight / 2;
+    for (let i = 0; i < ZOMBIE_COUNT; i++) {
+      let x = 0, y = 0;
+      for (let t = 0; t < 30; t++) {     // 고양이에게서 어느 정도 떨어진 가장자리에서 시작
+        const edge = (i + t) % 4;
+        if (edge === 0) { x = Math.random() * (fw - 56); y = 0; }
+        else if (edge === 1) { x = Math.random() * (fw - 56); y = fh - 56; }
+        else if (edge === 2) { x = 0; y = Math.random() * (fh - 56); }
+        else { x = fw - 56; y = Math.random() * (fh - 56); }
+        const dx = x + 28 - cx, dy = y + 28 - cy;
+        if (Math.sqrt(dx * dx + dy * dy) > 170) break;
+      }
+      const el = document.createElement('div');
+      el.className = 'zombie';
+      if (zombieSrc) {
+        const im = new Image();
+        im.src = zombieSrc;
+        im.draggable = false;
+        el.appendChild(im);
+      } else {
+        el.innerHTML = '<span class="emoji">🧟</span>';
+      }
+      const z = { el: el, x: x, y: y };
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!playing) return;
+        el.remove();
+        zombies = zombies.filter(q => q !== z);
+      });
+      field.appendChild(el);
+      zombies.push(z);
+    }
+    clearInterval(zombieTimer);
+    zombieTimer = setInterval(zombieStep, 40);
+    showToast('좀비냥 ' + ZOMBIE_COUNT + '마리가 고양이에게 다가옵니다! 눌러서 없애십시오.');
+  }
+  function zombieStep() {
+    if (!playing) { stopZombies(); return; }
+    if (!zombies.length) {
+      stopZombies();
+      showToast('좀비냥을 모두 처치했습니다.');
+      return;
+    }
+    if (cat.style.display === 'none' || cat.style.visibility === 'hidden') return;
+    const cx = cat.offsetLeft + cat.offsetWidth / 2, cy = cat.offsetTop + cat.offsetHeight / 2;
+    for (let i = 0; i < zombies.length; i++) {
+      const z = zombies[i];
+      const dx = cx - (z.x + 28), dy = cy - (z.y + 28);
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < ZOMBIE_TOUCH) { zombieOver(); return; }
+      const st = ZOMBIE_SPEED * 0.04;
+      z.x += dx / d * st;
+      z.y += dy / d * st;
+      z.el.style.left = z.x + 'px';
+      z.el.style.top = z.y + 'px';
+    }
+  }
+  function stopZombies() {
+    zombieActive = false;
+    clearInterval(zombieTimer);
+    zombies.forEach(z => z.el.remove());
+    zombies = [];
+  }
+  // 좀비냥이 고양이에게 닿으면 게임오버
+  function zombieOver() {
+    if (!playing) return;
+    playing = false;
+    stopBgm();
+    stopBoost();
+    stopNyan();
+    stopKnife();
+    stopUfo();
+    clearInterval(sweatTimer);
+    clearTimeout(sweatStayTimer);
+    clearTimeout(dumTimer);
+    dumPhase = null; dumFast = false;
+    clearInterval(newsTimer);
+    clearTimeout(moveTimer);
+    clearInterval(clockTimer);
+    clearInterval(zombieTimer);          // 좀비냥은 그 자리에서 멈춤
+    bubble.textContent = '으악! 좀비냥에게 잡혔습니다.';
+    cat.classList.add('say');
+    setTimeout(() => { endGame('좀비냥에게 잡혔습니다.<br>게임이 종료되었습니다.'); }, 1500);
+  }
+
+  // ---------- 똑똑한 고양이: 3초간 누를 때마다 점수 대신 pop +10 ----------
+  function startSmart() {
+    smartCount++;
+    smartCountEl.textContent = smartCount;
+    smartActive = true;
+    if (smartSrc && face.contains(img)) {
+      img.src = smartSrc;
+      cat.classList.add('color');
+    }
+    showToast('똑똑한 고양이: ' + (SMART_TIME / 1000) + '초간 누를 때마다 pop +' + SMART_POP + ' (점수 대신)');
+    clearTimeout(smartTimer);
+    smartTimer = setTimeout(endSmart, SMART_TIME);
+  }
+  function endSmart() { smartActive = false; }
+  function stopSmartState() { smartActive = false; clearTimeout(smartTimer); }
+
+  // 새로 추가된 이벤트를 모두 정리 (게임 시작/종료, 이벤트 강제 실행 전에 사용)
+  function clearExtras() {
+    stopDog();
+    stopMoai();
+    stopBotState();
+    stopXState();
+    stopPinState();
+    stopHoodState();
+    stopZombies();
+    stopSmartState();
+    stunned = false;
+    clearTimeout(stunTimer);
+    clearTimeout(sayTimer);
+    cat.classList.remove('hurt', 'say', 'bot', 'hood', 'pinned');
+    cat.style.visibility = '';
+    cat.style.transition = '';
+    cat.style.opacity = '';
+  }
+
   // ---------- 가짜 총 (진짜와 똑같이 나오지만 장전되지 않음) ----------
   function fakeGun() {
+    feedPost('가짜 총');
     fakeCount++;
     fakeCountEl.textContent = fakeCount;
     clearClones();
@@ -2147,6 +3085,7 @@
     stopNyan();
     stopKnife();
     stopUfo();
+    clearExtras();
     clearInterval(sweatTimer);
     clearTimeout(sweatStayTimer);
     clearTimeout(dumTimer);
@@ -2191,10 +3130,11 @@
       cat.style.width = sz + 'px';
       cat.style.height = sz + 'px';
     }
-    baseFace();                 // 평소 사진으로 복귀 (DUM 가속 중에는 DUM 그림 유지)
+    baseFace();                 // 평소 사진으로 복귀 (DUM 가속 / 똑똑한 고양이 중에는 그 그림 유지)
 
     // 0.12% 확률로 총 든 고양이 등장
     if (Math.random() < GUN_CHANCE) {
+      feedPost('총 든 고양이');
       gunEnding('게임을 종료합니다.', '고양이가 총을 들고 나타났습니다.<br>게임이 즉시 종료되었습니다.');
       return;
     }
@@ -2207,6 +3147,7 @@
 
     // 0.1% 확률로 보스 고양이
     if (Math.random() < BOSS_CHANCE) {
+      feedPost('보스 고양이');
       startBoss();
       return;
     }
@@ -2218,10 +3159,22 @@
     }
 
     // 0.12% 확률로 UFO (느낌표 → UFO)
-    if (!ufoPhase && Math.random() < UFO_CHANCE) {
+    if (!ufoPhase && !zombieActive && Math.random() < UFO_CHANCE) {
       startUfo();
       return;
     }
+
+    // 0.125% 확률로 후드냥 (오른쪽 가운데 문으로 나가려 함)
+    if (!hoodActive && !zombieActive && !dumPhase && !ufoPhase && Math.random() < HOOD_CHANCE) {
+      startHood();
+      return;
+    }
+
+    // 0.08% 확률로 좀비냥 5마리 (게임은 그대로 진행)
+    if (!zombieActive && !hoodActive && !ufoPhase && Math.random() < ZOMBIE_CHANCE) startZombies();
+
+    // 0.4% 확률로 똑똑한 고양이 (3초간 클릭하면 점수 대신 pop)
+    if (!smartActive && Math.random() < SMART_CHANCE) startSmart();
 
     // 0.3% 확률로 냥캣 (게임은 그대로 진행, 화면만 가림)
     if (!nyanBusy && Math.random() < NYAN_CHANCE) startNyan();
@@ -2253,7 +3206,7 @@
     held = false;
     sleeping = false;
     cat.classList.remove('hit', 'angry', 'held', 'color', 'gun');
-    if (dumFast && dumOk) cat.classList.add('color');
+    if ((dumFast && dumOk) || (smartActive && smartSrc)) cat.classList.add('color');
 
     const cloning = clones.length > 0;
 
@@ -2275,7 +3228,8 @@
       }
     }
     cat.style.display = 'block';
-    const delay = Math.max(350, 900 - score * 25) * SLOW * speedMul / (dumFast ? DUM_FAST_MUL : 1);
+    const delay = Math.max(350, 900 - score * 25) * SLOW * speedMul /
+                  (dumFast ? DUM_FAST_MUL : 1) / (botFast ? BOT_MUL : 1);
     moveTimer = setTimeout(moveCat, delay);
   }
 
@@ -2287,10 +3241,22 @@
     // 보스: 누를 때마다 체력 1 감소
     if (bossActive) { hitBoss(); return; }
 
+    if (stunned) return;                      // 강아지·모아이에게 맞아서 잠시 누를 수 없음
+    if (botPhase === 'calc') return;          // bot cat이 연산 중
+    if (hoodActive) { hoodClick(); return; }  // 후드냥이 문으로 나가는 것을 막는 중
+
     if (refusing || held) return; // 거절 중 / 붙잡힌 중 / 협박 중 / 가짜 총 중에는 입력 무시
 
     // DUM 고양이(움직이지 않는 2초): 눌러도 움직이지 않고 점수는 일반과 같이 쌓임
     if (dumPhase === 'still') {
+      addScore(boostActive ? BOOST_MUL : 1);
+      cat.classList.add('hit');
+      setTimeout(() => { cat.classList.remove('hit'); }, 80);
+      return;
+    }
+
+    // pin으로 고정된 2초: 눌러도 움직이지 않고 점수는 일반과 같이 쌓임
+    if (pinActive) {
       addScore(boostActive ? BOOST_MUL : 1);
       cat.classList.add('hit');
       setTimeout(() => { cat.classList.remove('hit'); }, 80);
@@ -2337,7 +3303,13 @@
       return;
     }
 
-    addScore(boostActive ? BOOST_MUL : 1); // bust 적용 중에는 점수가 늘어남
+    // 똑똑한 고양이: 점수 대신 pop을 줌
+    if (smartActive) {
+      givePop(SMART_POP);
+      say('pop +' + SMART_POP, 450);
+    } else {
+      addScore(boostActive ? BOOST_MUL : 1); // bust 적용 중에는 점수가 늘어남
+    }
     escaped = false; // 잡으면 박스 안으로 복귀
     clearClones();   // 진짜를 잡으면 분신 모두 사라짐
     cat.classList.add('hit');
@@ -2371,20 +3343,22 @@
 
     score = scoreInf ? 1000000000 : 0;
     scoreBeforeInf = 0;
-    time = GAME_TIME; playing = true;
+    time = gt(); playing = true;
     escaped = false; refusing = false; held = false; sleeping = false;
     bossActive = false; cakeMode = false; cakeSized = false; sweatMode = false;
     cakeUsed = false; gunUsed = false;            // 한 판에 한 번씩 다시 사용 가능
+    boostUses = 0; remoteUses = 0;                // bust / 리모컨 사용 횟수 초기화
     usedInf = unlimited || scoreInf;
     escCount = 0; refCount = 0; cloneCount = 0; rotCount = 0; handCount = 0;
     sleepCount = 0; fakeCount = 0; bossCount = 0; gunCount = 0; newsCount = 0; dumCount = 0; nyanCount = 0;
-    knifeCount = 0; ufoCount = 0; sweatCount = 0;
+    knifeCount = 0; ufoCount = 0; sweatCount = 0; hoodCount = 0; zombieCount = 0; smartCount = 0;
     clearClones();
     resetEffects();
     stopBoost();
     stopNyan();
     stopKnife();
     stopUfo();
+    clearExtras();
     clearTimeout(dumTimer);
     clearTimeout(sweatStayTimer);
     dumPhase = null; dumFast = false;
@@ -2395,6 +3369,7 @@
     bossCountEl.textContent = 0; gunCountEl.textContent = 0; newsCountEl.textContent = 0;
     dumCountEl.textContent = 0; nyanCountEl.textContent = 0;
     knifeCountEl.textContent = 0; ufoCountEl.textContent = 0; sweatCountEl.textContent = 0;
+    hoodCountEl.textContent = 0; zombieCountEl.textContent = 0; smartCountEl.textContent = 0;
     cat.style.width = '80px';
     cat.style.height = '80px';
     cat.classList.remove('angry', 'hit', 'gun', 'held', 'color', 'boss', 'cake', 'threat', 'sweat');
@@ -2411,12 +3386,13 @@
 
     // 당황 고양이: 고양이를 누르지 않은 시간을 0.5초마다 확인
     lastTap = Date.now();
-    clearInterval(sweatTimer);
+        clearInterval(sweatTimer);
     sweatTimer = setInterval(checkSweat, 500);
 
     playBgm(true);
     overlay.style.display = 'none';
     moveCat();
+    if (dogQueued) { dogQueued = false; startDog(); } // 시작 전에 dog 코드를 입력했다면 시작과 함께 강아지 등장
     clearInterval(clockTimer);
     clockTimer = setInterval(() => {
       if (unlimited) return; // 무제한이면 시간이 줄지 않음
@@ -2439,6 +3415,7 @@
     stopNyan();
     stopKnife();
     stopUfo();
+    clearExtras();
     clearInterval(sweatTimer);
     clearTimeout(sweatStayTimer);
     clearTimeout(dumTimer);
@@ -2449,7 +3426,7 @@
     clearClones();
     resetEffects();
     cat.style.display = 'none';
-    cat.classList.remove('gun', 'angry', 'hit', 'held', 'boss', 'cake', 'threat', 'sweat');
+    cat.classList.remove('gun', 'angry', 'hit', 'held', 'boss', 'cake', 'threat', 'sweat', 'hood', 'say');
     showAngryFace(false);
     renderShop();
     if (!usedInf) { try { localStorage.setItem('catLast', String(score)); } catch (e) {} }
